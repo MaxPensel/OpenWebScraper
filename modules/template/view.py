@@ -55,3 +55,4 @@ class TemplateWidget(VerticalContainer):
 
 TITLE       = "Template"
 MAIN_WIDGET = TemplateWidget
+VERSION     = "1.0.0"
