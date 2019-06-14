@@ -1,13 +1,17 @@
 .QWidget {
 	margin: 0;
 	padding: 0;
-	background: red;
+	/*background: red;*/
 }
 
 QAbstractButton {
 	background: #99ccff;
 	padding: 6px 20px;
 	font-size: large;
+}
+
+QAbstractButton:hover {
+	cursor: pointer;
 }
 
 QPlainTextEdit, QLineEdit {
