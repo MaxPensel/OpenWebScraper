@@ -76,10 +76,10 @@ class InfoWindow(QMainWindow):
         self.setWindowIcon(QIcon("resources/info.png"))
         
         versions = {}
-        for dir in os.listdir(ModLoader.mod_dir):
-            if os.path.exists(os.path.join(ModLoader.mod_dir, dir, "view.py")):
+        for dir in os.listdir(ModLoader.MOD_DIR):
+            if os.path.exists(os.path.join(ModLoader.MOD_DIR, dir, "view.py")):
                 try:
-                    mod = importlib.import_module(ModLoader.mod_dir + "." + dir + ".view", ModLoader.mod_dir + "." + dir)
+                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + dir + ".view", ModLoader.MOD_DIR + "." + dir)
                     if hasattr(mod, "VERSION"):
                         versions[dir] = "v{0}".format(mod.VERSION)
                     else:
@@ -122,7 +122,7 @@ class InfoWindow(QMainWindow):
 
 class ModLoader():
 
-    mod_dir = "modules"
+    MOD_DIR = "modules"
 
     def __init__(self):
         pass
@@ -131,7 +131,7 @@ class ModLoader():
         self.modules = []
         for modname in mods:
             try: 
-                mod = importlib.import_module(self.mod_dir + "." + modname + ".view", self.mod_dir + "." + modname)
+                mod = importlib.import_module(self.MOD_DIR + "." + modname + ".view", self.MOD_DIR + "." + modname)
                 
                 if not hasattr(mod, "TITLE"):
                     mod.TITLE = modname
