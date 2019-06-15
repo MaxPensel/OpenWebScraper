@@ -5,7 +5,8 @@ Created on 27.05.2019
 '''
 from core.QtExtensions import VerticalContainer, FileOpenPushButton
 from modules.crawler.controller import CrawlerController
-from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter
+from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter,\
+    QFileDialog
 from PyQt5.QtWidgets import QHBoxLayout
 
 class CrawlerWidget(VerticalContainer):
@@ -74,7 +75,7 @@ class CrawlerWidget(VerticalContainer):
         
         crawl_dir_input_label  = QLabel("Crawler output directory:")
         self._crawl_dir_input  = QLineEdit()
-        self._crawl_dir_input_open  = FileOpenPushButton(hook_field=self._crawl_dir_input)
+        self._crawl_dir_input_open  = FileOpenPushButton(hook_field=self._crawl_dir_input, title="Select", type=QFileDialog.Directory)
         
         crawl_dir_input_layout = QHBoxLayout()
         crawl_dir_input_layout.addWidget(crawl_dir_input_label)
