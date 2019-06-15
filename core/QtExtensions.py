@@ -36,19 +36,25 @@ class FileOpenPushButton(QPushButton):
                  hook_field : QLineEdit = None,
                  hook = None,
                  title : str = "Open",
-                 type  : str = "any"):
+                 type  : QFileDialog.FileMode = QFileDialog.AnyFile):
         super().__init__(title)
         self._hook_field = hook_field
         if not callable(hook) and not hook_field == None:
             self._hook = self.fill_field
         
         self.clicked.connect(self.on_click)
+        
+        self._dialog = QFileDialog(self)
+        self._dialog.setFileMode(type)
+        self._dialog.setDirectory(".")
+        if type == QFileDialog.Directory:
+            self._dialog.setOption(QFileDialog.ShowDirsOnly)
     
     def on_click(self):
-        fileInput = QFileDialog.getOpenFileName(parent=self, caption="Open Image", directory=".", filter="", options=QFileDialog.ReadOnly);
-        fileName = fileInput[0]
-        if callable(self._hook):
-            self._hook(fileName)
+        if self._dialog.exec_():
+            fileName = self._dialog.selectedFiles()[0]
+            if callable(self._hook):
+                self._hook(fileName)
     
     def fill_field(self, path):
         ''' Fill the hook_field (if given and of type QLineEdit) with the selected file/path '''
