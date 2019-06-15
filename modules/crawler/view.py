@@ -72,10 +72,20 @@ class CrawlerWidget(VerticalContainer):
         url_blacklist_splitter.addWidget(url_container)
         url_blacklist_splitter.addWidget(blacklist_container)
         
+        crawl_dir_input_label  = QLabel("Crawler output directory:")
+        self._crawl_dir_input  = QLineEdit()
+        self._crawl_dir_input_open  = FileOpenPushButton(hook_field=self._crawl_dir_input)
+        
+        crawl_dir_input_layout = QHBoxLayout()
+        crawl_dir_input_layout.addWidget(crawl_dir_input_label)
+        crawl_dir_input_layout.addWidget(self._crawl_dir_input)
+        crawl_dir_input_layout.addWidget(self._crawl_dir_input_open)
+        
         self._crawl_button = QPushButton("Start Crawling")
         
         
         self.addWidget(url_blacklist_splitter)
+        self.addLayout(crawl_dir_input_layout)
         self.addWidget(self._crawl_button)
         
         self.cnt = CrawlerController(self)
