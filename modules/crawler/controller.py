@@ -94,11 +94,11 @@ class CrawlerController():
         run_dir = self.add_running()
         print("Starting {0} ..".format(run_dir))
         try:
-            subprocess.Popen(["python", "scrapy_wrapper.py", os.path.join(self.RUNNING_DIR, run_dir)],
+            subprocess.Popen(["python", "../scrapy_wrapper.py", os.path.join(self.RUNNING_DIR, run_dir)],
                              stdout=subprocess.PIPE,
                              shell=True,
                              start_new_session=True,
-                             cwd="modules/crawler/",
+                             cwd="modules/crawler/scrapy_crawl",
                              creationflags=subprocess.DETACHED_PROCESS,
                              close_fds=True)
         except Exception as exc:
