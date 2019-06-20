@@ -6,6 +6,7 @@ Created on 27.05.2019
 
 import os
 import sys
+import json
 import traceback
 import subprocess
 from crawlUI import ModLoader
@@ -92,18 +93,55 @@ class CrawlerController():
     
     def start_crawl(self):
         run_dir = self.add_running()
+        
+        if not self.setup_crawl(run_dir):
+            print("Crawl setup encountered an error. Not starting crawl.", file=sys.stderr)
+            return
+        
         print("Starting {0} ..".format(run_dir))
         try:
-            subprocess.Popen(["python", "../scrapy_wrapper.py", os.path.join(self.RUNNING_DIR, run_dir)],
-                             stdout=subprocess.PIPE,
+            if os.name == "nt": # include the creationflag DETACHED_PROCESS for calls in windows
+                subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
+                             stdout=sys.stdout,
                              shell=True,
                              start_new_session=True,
-                             cwd="modules/crawler/scrapy_crawl",
+                             cwd="modules/crawler/",
                              creationflags=subprocess.DETACHED_PROCESS,
+                             close_fds=True)
+            else:
+                subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
+                             stdout=sys.stdout,
+                             shell=True,
+                             start_new_session=True,
+                             cwd="modules/crawler/",
                              close_fds=True)
         except Exception as exc:
             print(traceback.format_exc())
             print(exc)
+    
+    def setup_crawl(self, run_dir):
+        full_path = os.path.join("modules", "crawler", "running", run_dir)
+        urls_path = os.path.join(full_path, "urls.txt")
+        settings_path  = os.path.join(full_path, "settings.json")
+        
+        settings = {}
+        settings["out_dir"] = self._view._crawl_dir_input.displayText()
+        
+        urls_text = self._view._url_area.toPlainText()
+        try:
+            with open(urls_path, "w") as urls_file:
+                urls_file.write(urls_text)
+            
+            with open(settings_path, "w") as settings_file:
+                settings_file.write(json.dumps(settings))
+            
+        except Exception as exc:
+            print(traceback.format_exc())
+            print(exc)
+            return False
+        
+        return True
+        
     
 def CrawlerWrapper():
     
