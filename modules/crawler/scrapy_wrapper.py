@@ -1,16 +1,20 @@
 #! python3
-'''
+"""
 Created on 15.06.2019
 
+Several methods, structures and ideas in this wrapper are based on original code by Philipp Poschmann.
+For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPipeline classes.
+
 @author: Maximilian Pensel
-'''
+"""
 import sys
-import os, shutil
+import os
+import shutil
+
 import pandas as pd
 import json
 import traceback
 import scrapy
-from twisted.internet import reactor
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors.lxmlhtml import LxmlLinkExtractor
 from scrapy.crawler import CrawlerProcess
@@ -19,20 +23,22 @@ from scrapy.settings import Settings
 from langdetect.lang_detect_exception import LangDetectException
 from langdetect import detect
 import textract
+from textract.exceptions import CommandLineError
 
-ACCEPTED_LANG = ["de", "en"] # will be dynamically set through the UI in the future
+ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
 
 if len(sys.argv) >= 2:
     SPEC_DIR = sys.argv[1]
 else:
     SPEC_DIR = None
-    
+
 DEBUG = False
 if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
     DEBUG = True
 
+
 def load_urls(spec_dir):
-    url_filename      = "urls.txt"
+    url_filename = "urls.txt"
     try:
         url_file = open(os.path.join(spec_dir, url_filename), "r")
         urls = []
@@ -43,7 +49,7 @@ def load_urls(spec_dir):
         print(traceback.format_exc())
         print(exc)
         return None
-    
+
     return urls
 
 
@@ -57,14 +63,16 @@ def load_settings(spec_dir):
         print(traceback.format_exc())
         print(exc)
         return None
-    
+
     return settings
+
 
 def delete_path(path):
     # combination of the following three delete the full directory tree whose root is specified by path
     shutil.rmtree(path)
     os.makedirs(path)
     os.removedirs(path)
+
 
 class WebsiteParagraph(scrapy.Item):
     # define the fields for your item here like:
@@ -77,35 +85,36 @@ class WebsiteParagraph(scrapy.Item):
 def create_spider(urls, settings):
     class GenericCrawlSpider(CrawlSpider):
         name = 'generic_crawler'
-    
-        denied_extensions = ('mng', 'pct', 'bmp', 'gif', 'jpg', 'jpeg', 'png', 'pst', 'psp', 'tif', 'tiff', 'ai', 'drw', 'dxf', 'eps', 'ps', 'svg', 'mp3', 'wma', 'ogg', 'wav', 'ra', 'aac', 'mid', 'au', 'aiff', '3gp', 'asf', 'asx', 'avi', 'mov', 'mp4', 'mpg', 'qt', 'rm', 'swf', 'wmv',
-        'm4a', 'm4v', 'flv', 'xls', 'xlsx', 'ppt', 'pptx', 'pps', 'doc', 'docx', 'odt', 'ods', 'odg',
-        'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar', 'pdf' # only for now not accepting pdf
-        )
-   
+
+        denied_extensions = ('mng', 'pct', 'bmp', 'gif', 'jpg', 'jpeg', 'png', 'pst', 'psp', 'tif', 'tiff', 'ai', 'drw',
+                             'dxf', 'eps', 'ps', 'svg', 'mp3', 'wma', 'ogg', 'wav', 'ra', 'aac', 'mid', 'au', 'aiff',
+                             '3gp', 'asf', 'asx', 'avi', 'mov', 'mp4', 'mpg', 'qt', 'rm', 'swf', 'wmv',
+                             'm4a', 'm4v', 'flv', 'xls', 'xlsx', 'ppt', 'pptx', 'pps', 'doc', 'docx', 'odt', 'ods',
+                             'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
+                             )
+
         start_urls = urls
-        allowed_domains = list(map(lambda x:urlparse(x).netloc, start_urls))
-        
+        allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
+
         run_settings = settings
-        
-        #p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
+
+        # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
         rules = [
-            #Rule(LinkExtractor(deny=r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")),
-            Rule(LxmlLinkExtractor(#deny=(r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?"),
-                               #deny=blacklistloader.load_blacklist(),
-                               deny_extensions=denied_extensions), callback='parse_item', follow=True)
+            # Rule(LinkExtractor(deny=r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")),
+            Rule(LxmlLinkExtractor(  # deny=(r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?"),
+                                     # deny=blacklistloader.load_blacklist(),  # Blacklist feature not yet implemented
+                                    deny_extensions=denied_extensions), callback='parse_item', follow=True)
         ]
-    
+
         def parse_item(self, response):
             print(response.url)
-            items = []
-            
+
             ct = str(response.headers.get(b"Content-Type", "").lower())
             if "pdf" in ct:
                 items = self.handle_pdf(response)
             else:
                 items = self.handle_html(response)
-    
+
             return items
 
         def handle_html(self, response):
@@ -135,9 +144,9 @@ def create_spider(urls, settings):
 
             try:
                 content = textract.process(filepath)
-            except:
-                print("Problem with extracting text from this file! Maybe it is password protected.")
-                return []
+            except CommandLineError as exc:  # Catching either ExtensionNotSupported or MissingFileError
+                print(exc, file=sys.stderr)
+                return []  # In any case, text extraction failed so no items were parsed
 
             global DEBUG  # fetch DEBUG flag
             if DEBUG:  # Only store intermediary .txt conversion of pdf in DEBUG mode
@@ -177,7 +186,8 @@ def create_spider(urls, settings):
 
             return items
 
-        def make_scrapy_item(self, url, content):
+        @staticmethod
+        def make_scrapy_item(url, content):
             item = WebsiteParagraph()
             item["url"] = url
             item["content"] = content
@@ -187,7 +197,7 @@ def create_spider(urls, settings):
 
 
 class GenericCrawlPipeline(object):
-    
+
     def process_item(self, item, spider):
         url = item['url']
         content = item['content']
@@ -196,7 +206,7 @@ class GenericCrawlPipeline(object):
         if domain in self.dataframes:
             print("Adding content for ", str(url), "to", str(domain))
             self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
-        
+
         return item
 
     def open_spider(self, spider):
@@ -207,12 +217,12 @@ class GenericCrawlPipeline(object):
 
     def close_spider(self, spider):
         output_dir = spider.run_settings["out_dir"]
-        
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        
+
         errors = []
-        
+
         for url in self.dataframes:
             try:
                 filename = os.path.join(output_dir, url+".csv")
@@ -220,15 +230,15 @@ class GenericCrawlPipeline(object):
                 self.dataframes[url].to_csv(filename, sep=";", index=False, encoding="utf-8")
             except Exception as exc:
                 errors.append(exc)
-        
+
         if not DEBUG:
             if len(errors) == 0:
                 delete_path(spider.run_settings["spec_dir"])
             else:
-                print("The following errors have been encountered during the finalisation of the crawl specified in {0}".format(spider.run_settings["spec_dir"]), file=sys.stderr)
+                print("The following errors have been encountered during the finalisation of the crawl specified in {0}"
+                      .format(spider.run_settings["spec_dir"]), file=sys.stderr)
                 for exc in errors:
                     print(exc, file=sys.stderr)
-        
 
 
 class GenericCrawlSettings(Settings):
@@ -241,24 +251,24 @@ class GenericCrawlSettings(Settings):
             "LOG_LEVEL": "WARNING"
             })
 
-if SPEC_DIR == None:
-    print(
-"""Error: no specification directory given. Call scrapy_wrapper as follows:
-  python scrapy_wrapper.py <spec_dir>
-<spec_dir> should contain a urls.txt and settings.json
-""", file=sys.stderr)
+
+if SPEC_DIR is None:
+    print("Error: no specification directory given. Call scrapy_wrapper.py as follows:\n" +
+          "  python scrapy_wrapper.py <spec_dir> [DEBUG]\n" +
+          "  <spec_dir> should contain a urls.txt and settings.json",
+          file=sys.stderr)
     exit()
 
 scrapy_settings = GenericCrawlSettings()
 
-urls = load_urls(SPEC_DIR)
+url_list = load_urls(SPEC_DIR)
 
 run_settings = load_settings(SPEC_DIR)
 run_settings["spec_dir"] = SPEC_DIR
 
 process = CrawlerProcess(settings=scrapy_settings)
-process.crawl(create_spider(urls, run_settings))
+process.crawl(create_spider(url_list, run_settings))
 try:
     process.start()
-except Exception as exc:
-    print("Warning: Don't worry, the crawl finished, strange error still fired for some reason.", exc)
+except Exception as error:
+    print("Warning: Don't worry, the crawl finished, strange error still fired for some reason.", error)

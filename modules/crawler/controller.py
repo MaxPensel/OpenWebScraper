@@ -1,8 +1,8 @@
-'''
+"""
 Created on 27.05.2019
 
 @author: Maximilian Pensel
-'''
+"""
 
 import os
 import sys
@@ -10,15 +10,14 @@ import json
 import traceback
 import subprocess
 from crawlUI import ModLoader
-#from modules.crawler_view import CrawlerWidget
 
-class CrawlerController():
+
+class CrawlerController:
     
-    MOD_PATH     = os.path.join(ModLoader.MOD_DIR, "crawler")
-    RUNNING_DIR  = "running"
+    MOD_PATH = os.path.join(ModLoader.MOD_DIR, "crawler")
+    RUNNING_DIR = "running"
     RUNNING_PATH = os.path.join(MOD_PATH, RUNNING_DIR)
-    
-    
+
     def __init__(self, view):
         self._view = view
         
@@ -27,26 +26,25 @@ class CrawlerController():
         self.setup_behaviour()
     
     def init_elements(self):
-        ''' sets up the initial state of the elements
-        
+        """ Sets up the initial state of the elements
+
         This could determine the enabled state of a button, default values for text areas, etc.
         Should not further adjust layouts or labels!
+        """
         
-        '''
-        
-        self._view._blacklist_save.setEnabled(False)
-        self._view._url_save.setEnabled(False)
+        self._view.blacklist_save.setEnabled(False)
+        self._view.url_save.setEnabled(False)
 
     def setup_behaviour(self):
-        ''' Setup the behaviour of elements
+        """ Setup the behaviour of elements
         
         This includes all functionality of state changes for primitive widgets.
         Should not initialise default state, use init_elements() for that.
-        '''
+        """
         
-        self._view._url_load.clicked.connect(self.load_file)
-        self._view._crawl_button.clicked.connect(self.start_crawl)
-        #self._view._blacklist_load.clicked.connect(lambda:self.load_file(self._view._blacklist_load.displayText(), self._view._blacklist_area))
+        self._view.url_load.clicked.connect(self.load_file)
+        self._view.crawl_button.clicked.connect(self.start_crawl)
+        # self._view.blacklist_load.clicked.connect(self.load_file)  # load_file must be made more generic
     
     def find_running(self):
         if os.path.exists(self.RUNNING_PATH):
@@ -75,12 +73,11 @@ class CrawlerController():
             print(traceback.format_exc())
             print(exc)
         
-        return None # something went wrong
+        return None  # something went wrong
         
-    
     def load_file(self):
-        path = self._view._url_input.displayText()
-        area = self._view._url_area
+        path = self._view.url_input.displayText()
+        area = self._view.url_area
         
         try:
             with open(path) as in_file:
@@ -100,21 +97,21 @@ class CrawlerController():
         
         print("Starting {0} ..".format(run_dir))
         try:
-            if os.name == "nt": # include the creationflag DETACHED_PROCESS for calls in windows
+            if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
                 subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
-                             stdout=sys.stdout,
-                             shell=True,
-                             start_new_session=True,
-                             cwd="modules/crawler/",
-                             creationflags=subprocess.DETACHED_PROCESS,
-                             close_fds=True)
+                                 stdout=sys.stdout,
+                                 shell=True,
+                                 start_new_session=True,
+                                 cwd="modules/crawler/",
+                                 creationflags=subprocess.DETACHED_PROCESS,
+                                 close_fds=True)
             else:
                 subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
-                             stdout=sys.stdout,
-                             shell=True,
-                             start_new_session=True,
-                             cwd="modules/crawler/",
-                             close_fds=True)
+                                 stdout=sys.stdout,
+                                 shell=True,
+                                 start_new_session=True,
+                                 cwd="modules/crawler/",
+                                 close_fds=True)
         except Exception as exc:
             print(traceback.format_exc())
             print(exc)
@@ -122,12 +119,11 @@ class CrawlerController():
     def setup_crawl(self, run_dir):
         full_path = os.path.join("modules", "crawler", "running", run_dir)
         urls_path = os.path.join(full_path, "urls.txt")
-        settings_path  = os.path.join(full_path, "settings.json")
+        settings_path = os.path.join(full_path, "settings.json")
         
-        settings = {}
-        settings["out_dir"] = self._view._crawl_dir_input.displayText()
-        
-        urls_text = self._view._url_area.toPlainText()
+        settings = {"out_dir": self._view.crawl_dir_input.displayText()}
+
+        urls_text = self._view.url_area.toPlainText()
         try:
             with open(urls_path, "w") as urls_file:
                 urls_file.write(urls_text)
@@ -141,9 +137,3 @@ class CrawlerController():
             return False
         
         return True
-        
-    
-def CrawlerWrapper():
-    
-    def __init__(self):
-        pass
