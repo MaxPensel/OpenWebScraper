@@ -18,8 +18,7 @@ from urllib.parse import urlparse
 from scrapy.settings import Settings
 from langdetect.lang_detect_exception import LangDetectException
 from langdetect import detect
-#import pdftextextraction
-#from scrapy_crawl.spiders.crawlspider import GenericCrawlSpider
+import textract
 
 ACCEPTED_LANG = ["de", "en"] # will be dynamically set through the UI in the future
 
@@ -61,65 +60,19 @@ def load_settings(spec_dir):
     
     return settings
 
+def delete_path(path):
+    # combination of the following three delete the full directory tree whose root is specified by path
+    shutil.rmtree(path)
+    os.makedirs(path)
+    os.removedirs(path)
+
 class WebsiteParagraph(scrapy.Item):
     # define the fields for your item here like:
     url = scrapy.Field()
     content = scrapy.Field()
-    
+
     pass
 
-
-def handle_html(response):
-    items = []
-    paragraphs = response.xpath("//p")
-    for par in paragraphs:
-        par_content = "".join(par.xpath(".//text()").extract())
-        if len(par_content) > 10:
-            try:
-                lang = detect(par_content)
-                if lang in ACCEPTED_LANG:
-                    item = WebsiteParagraph()
-                    item['url'] = response.url
-                    item['content'] = par_content
-                    items.append(item)
-            except LangDetectException:
-                pass
-
-    paragraphs = response.xpath("//td")
-    for par in paragraphs:
-        par_content = "".join(par.xpath(".//text()").extract())
-        if len(par_content) > 10:
-            try:
-                lang = detect(par_content)
-                if lang in ACCEPTED_LANG:
-                    item = WebsiteParagraph()
-                    item['url'] = response.url
-                    item['content'] = par_content
-                    items.append(item)
-            except LangDetectException:
-                pass
-    return items
-
-
-def handle_pdf(response):
-    print("Warning: pdf not yet supported")
-    items = []
-#    pdf_paragraphs = pdftextextraction.extract_paragraphs(response.url)
-
-#    if pdf_paragraphs is not None:
-#        for par in pdf_paragraphs:
-#            if len(par) > 10:
-#                try:
-#                    lang = detect(par)
-#                    if lang in ACCEPTED_LANG:
-#                        item = WebsiteParagraph()
-#                        item['url'] = response.url.encode("utf-8")
-#                        item['content'] = par
-#                        items.append(item)
-#                except LangDetectException:
-#                    pass
-
-    return items
 
 def create_spider(urls, settings):
     class GenericCrawlSpider(CrawlSpider):
@@ -149,13 +102,89 @@ def create_spider(urls, settings):
             
             ct = str(response.headers.get(b"Content-Type", "").lower())
             if "pdf" in ct:
-                items = handle_pdf(response)
+                items = self.handle_pdf(response)
             else:
-                items = handle_html(response)
+                items = self.handle_html(response)
     
             return items
-    
+
+        def handle_html(self, response):
+            items = []
+
+            scraping_tags = ["p", "td"]
+
+            for tag in scraping_tags:
+                paragraphs = response.xpath("//"+tag)
+                for par in paragraphs:
+                    par_content = "".join(par.xpath(".//text()").extract())
+                    items.extend(self.process_paragraph(response, par_content))
+
+            return items
+
+        def handle_pdf(self, response):
+            # print("Warning: pdf not yet supported")
+            filename = response.url.split('/')[-1]
+            pdf_tmp_dir = os.path.join(self.run_settings["spec_dir"], "PDF_TMP")
+            txt_tmp_dir = os.path.join(self.run_settings["spec_dir"], "TXT_TMP")
+            if not os.path.exists(pdf_tmp_dir):
+                os.makedirs(pdf_tmp_dir)
+            filepath = os.path.join(pdf_tmp_dir, filename)
+
+            with open(filepath, "wb") as pdffile:
+                pdffile.write(response.body)
+
+            try:
+                content = textract.process(filepath)
+            except:
+                print("Problem with extracting text from this file! Maybe it is password protected.")
+                return []
+
+            global DEBUG  # fetch DEBUG flag
+            if DEBUG:  # Only store intermediary .txt conversion of pdf in DEBUG mode
+                if not os.path.exists(txt_tmp_dir):
+                    os.makedirs(txt_tmp_dir)
+                txt_name = filename.replace(".pdf", ".txt")
+                with open(os.path.join(txt_tmp_dir, txt_name), "wb") as txt_file:
+                    txt_file.write(content)
+
+            content = content.decode("utf-8")  # convert byte string to utf-8 string
+            items = []
+            for par_content in content.splitlines():
+                items.extend(self.process_paragraph(response, par_content))
+
+            # Cleanup temporary pdf directory, unless in debug mode
+            if not DEBUG:
+                delete_path(pdf_tmp_dir)
+
+            return items
+
+        def process_paragraph(self, response, par_content):
+            items = []
+
+            if par_content.strip():  # immediately ignore empty or only whitespace paragraphs
+                try:
+                    lang = detect(par_content)
+                    if lang in ACCEPTED_LANG:
+                        items.append(self.make_scrapy_item(response.url, par_content))
+                except LangDetectException as exc:
+                    print("Error: {0} on langdetect input '{1}'. Being careful and storing the value anyway!"
+                          .format(exc, par_content),
+                          file=sys.stderr)
+                    # Storing the value if language detection has failed. This behaviour remains to be evaluated.
+                    # Of course repeating code is ugly, but language detection works the same with pdf and html,
+                    # so being outsourced in the future anyway.
+                    items.append(self.make_scrapy_item(response.url, par_content))
+
+            return items
+
+        def make_scrapy_item(self, url, content):
+            item = WebsiteParagraph()
+            item["url"] = url
+            item["content"] = content
+            return item
+
     return GenericCrawlSpider
+
 
 class GenericCrawlPipeline(object):
     
@@ -194,10 +223,7 @@ class GenericCrawlPipeline(object):
         
         if not DEBUG:
             if len(errors) == 0:
-                # combination of the following three delete the current crawl_x directory as well as the "running" dir, in case this was the last crawl
-                shutil.rmtree(spider.run_settings["spec_dir"])
-                os.makedirs(spider.run_settings["spec_dir"])
-                os.removedirs(spider.run_settings["spec_dir"])
+                delete_path(spider.run_settings["spec_dir"])
             else:
                 print("The following errors have been encountered during the finalisation of the crawl specified in {0}".format(spider.run_settings["spec_dir"]), file=sys.stderr)
                 for exc in errors:
