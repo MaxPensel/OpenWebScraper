@@ -94,3 +94,4 @@ class CrawlerWidget(VerticalContainer):
 
 TITLE = "Crawler"
 MAIN_WIDGET = CrawlerWidget
+VERSION = "1.0.0"
