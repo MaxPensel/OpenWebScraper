@@ -7,13 +7,82 @@ Created on 24.05.2019
 import importlib
 import os
 import json
-from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QWidget, QToolBar, QPushButton, QSizePolicy,\
-    QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QWidget, QToolBar, QPushButton, QSizePolicy, \
+    QTableWidget, QTableWidgetItem, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
 
-VERSION = "1.1.0"
+from core.Workspace import WorkspaceManager
+
+VERSION = "1.2.0"
+
+
+class UIWindow(QMainWindow):
+
+    def __init__(self, settings):
+        super().__init__()
+
+        self.main_widget = MainWidget(self)
+        self.info_window = None
+
+        mod_loader = ModLoader()
+        mod_loader.load_modules(settings.modules)
+
+        self.main_widget.register_modules(mod_loader.modules)
+
+        self.init_menu()
+
+        self.setGeometry(200, 200, 800, 500)
+        self.setWindowTitle("SpiderGUI")
+
+    def init_menu(self):
+        main_menu = self.menuBar()
+        file_menu = main_menu.addMenu("File")
+        help_menu = main_menu.addMenu("Help")
+
+        # File > Switch Workspace ...
+        workspace_button = QAction('Switch Workspace ...', self)
+        workspace_button.setStatusTip('Switch the current workspace.')
+        workspace_button.triggered.connect(self.switch_workspace)
+        file_menu.addAction(workspace_button)
+
+        # File > Exit
+        exit_button = QAction('Exit', self)
+        exit_button.setShortcut('Ctrl+Q')
+        exit_button.setStatusTip('Exit')
+        exit_button.triggered.connect(self.close)
+        file_menu.addAction(exit_button)
+
+        # Help > Info
+        info_button = QAction('Version Info', self)
+        info_button.setStatusTip('View the version info of all loaded modules')
+        info_button.triggered.connect(self.info_button_click)
+        help_menu.addAction(info_button)
+
+    def info_button_click(self):
+        if self.info_window is None:
+            self.info_window = InfoWindow(self)
+
+        if not self.info_window.isVisible():
+            self.info_window.show()
+
+    def switch_workspace(self):
+        wsm = WorkspaceManager()
+
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.Directory)
+        dialog.setOption(QFileDialog.ShowDirsOnly)
+        if wsm.is_workspace_selected():
+            dialog.setDirectory(os.path.split(wsm.get_workspace())[0])
+        else:
+            dialog.setDirectory(os.getcwd())
+
+        if dialog.exec_():
+            ws_path = dialog.selectedFiles()[0]
+            wsm.set_workspace(ws_path)
+        else:
+            print("Error: Something went wrong when switching workspace.", file=sys.stderr)
 
 
 class MainWidget(QTabWidget):
@@ -23,52 +92,14 @@ class MainWidget(QTabWidget):
         super().__init__(parent)
         
         self.main_window = parent
-        self.info_window = None
         
         parent.setCentralWidget(self)
         
         parent.setStyleSheet(open("style.css").read())
-        
-        self.init_toolbar()
     
     def register_modules(self, modules: {}):
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
-    
-    def init_toolbar(self):
-        toolbar = QToolBar()
-        toolbar.setMovable(False)
-        
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        
-        toolbar.addWidget(spacer)
-        
-        info_button = QPushButton()
-        info_button.setStyleSheet("""
-        QPushButton {
-            padding: 3px;
-            background: none;
-            border: none;
-            width: 15px;
-            height: 15px;
-        }
-        """)
-        info_button.setIcon(QIcon("resources/info.png"))
-        
-        
-        info_button.clicked.connect(self.info_button_click)
-                
-        toolbar.addWidget(info_button)
-        
-        self.main_window.addToolBar(toolbar)
-    
-    def info_button_click(self):
-        if self.info_window is None:
-            self.info_window = InfoWindow(self)
-
-        if not self.info_window.isVisible():
-            self.info_window.show()
 
 
 class InfoWindow(QMainWindow):
@@ -193,19 +224,9 @@ class Settings:
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
-    
-    settings = Settings("settings.ini")
-    
-    main_window = QMainWindow()
-    ui = MainWidget(main_window)
-    
-    mod_loader = ModLoader()
-    mod_loader.load_modules(settings.modules)
-    
-    ui.register_modules(mod_loader.modules)
-    
-    main_window.setGeometry(200, 200, 800, 500)
-    main_window.setWindowTitle("SpiderGUI")
-    
-    main_window.show()
+
+    window = UIWindow(Settings("settings.ini"))
+
+    window.show()
+
     sys.exit(app.exec_())

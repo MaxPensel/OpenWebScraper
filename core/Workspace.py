@@ -13,7 +13,7 @@ class WorkspaceManager:
             self._default_workspace = "default_workspace"
             self._workspace_path = path
 
-            self.get_workspace() # calling this on init ensures that the workspace always exists
+            self.get_workspace()  # calling this on init ensures that the workspace always exists
 
         def is_workspace_selected(self):
             """ Determine if a custom workspace is selected. """
@@ -33,6 +33,7 @@ class WorkspaceManager:
             """ Set the current workspace to path, creating it if necessary in the process. """
             WorkspaceManager._create_workspace_path(path)
             self._workspace_path = path
+            print("Info: The workspace was switched to {0}.".format(self._workspace_path))
 
     # End of inner __WorkspaceManager
 
