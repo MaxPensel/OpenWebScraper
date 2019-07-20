@@ -10,7 +10,7 @@ class WorkspaceManager:
     class __WorkspaceManager:
 
         def __init__(self, path=""):
-            self._default_workspace = "default_workspace"
+            self._default_workspace = os.path.join(os.getcwd(), "default_workspace")
             self._workspace_path = path
 
             self.get_workspace()  # calling this on init ensures that the workspace always exists
