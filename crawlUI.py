@@ -15,7 +15,7 @@ from PyQt5 import QtWidgets
 
 from core.Workspace import WorkspaceManager
 
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 class UIWindow(QMainWindow):
@@ -26,10 +26,10 @@ class UIWindow(QMainWindow):
         self.main_widget = MainWidget(self)
         self.info_window = None
 
-        mod_loader = ModLoader()
-        mod_loader.load_modules(settings.modules)
+        self.mod_loader = ModLoader()
+        self.mod_loader.load_modules(settings.modules)
 
-        self.main_widget.register_modules(mod_loader.modules)
+        self.main_widget.register_modules(self.mod_loader.modules)
 
         self.init_menu()
 
@@ -84,6 +84,8 @@ class UIWindow(QMainWindow):
         else:
             print("Error: Something went wrong when switching workspace.", file=sys.stderr)
 
+        self.main_widget.reload_modules(self.mod_loader.modules)
+
 
 class MainWidget(QTabWidget):
 
@@ -101,6 +103,12 @@ class MainWidget(QTabWidget):
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
 
+    def reload_modules(self, modules: {}):
+        for i in range(self.count()):
+            self.removeTab(i)
+
+        for module in modules:
+            self.addTab(module.MAIN_WIDGET(), module.TITLE)
 
 class InfoWindow(QMainWindow):
     
