@@ -5,8 +5,8 @@ Created on 27.05.2019
 """
 from core.QtExtensions import VerticalContainer, FileOpenPushButton
 from modules.crawler.controller import CrawlerController
-from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter,\
-    QFileDialog
+from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter, \
+    QFileDialog, QCompleter
 from PyQt5.QtWidgets import QHBoxLayout
 
 
@@ -19,7 +19,7 @@ class CrawlerWidget(VerticalContainer):
         # setup url side
         url_input_label = QLabel("URL File:")
         self.url_input = QLineEdit()
-        self.url_input_open = FileOpenPushButton(hook_field=self.url_input)
+        # self.url_input_open = FileOpenPushButton(hook_field=self.url_input)
         
         self.url_area = QPlainTextEdit()
         self.url_load = QPushButton("Load")
@@ -29,7 +29,7 @@ class CrawlerWidget(VerticalContainer):
         url_input_layout = QHBoxLayout()
         url_input_layout.addWidget(url_input_label)
         url_input_layout.addWidget(self.url_input)
-        url_input_layout.addWidget(self.url_input_open)
+        # url_input_layout.addWidget(self.url_input_open)
         
         url_buttons_layout = QHBoxLayout()
         for button in [self.url_load, self.url_append, self.url_save]:
@@ -44,7 +44,7 @@ class CrawlerWidget(VerticalContainer):
         # setup blacklist side
         blacklist_input_label = QLabel("Blacklist File:")
         self.blacklist_input = QLineEdit()
-        self.blacklist_input_open = FileOpenPushButton(hook_field=self.blacklist_input)
+        # self.blacklist_input_open = FileOpenPushButton(hook_field=self.blacklist_input)
         
         self.blacklist_area = QPlainTextEdit()
         self.blacklist_load = QPushButton("Load")
@@ -54,7 +54,7 @@ class CrawlerWidget(VerticalContainer):
         blacklist_input_layout = QHBoxLayout()
         blacklist_input_layout.addWidget(blacklist_input_label)
         blacklist_input_layout.addWidget(self.blacklist_input)
-        blacklist_input_layout.addWidget(self.blacklist_input_open)
+        # blacklist_input_layout.addWidget(self.blacklist_input_open)
         
         blacklist_buttons_layout = QHBoxLayout()
         for button in [self.blacklist_load, self.blacklist_append, self.blacklist_save]:
@@ -72,21 +72,21 @@ class CrawlerWidget(VerticalContainer):
         url_blacklist_splitter.addWidget(url_container)
         url_blacklist_splitter.addWidget(blacklist_container)
         
-        crawl_dir_input_label = QLabel("Crawler output directory:")
-        self.crawl_dir_input = QLineEdit()
-        self.crawl_dir_input_open = FileOpenPushButton(hook_field=self.crawl_dir_input,
-                                                       title="Select",
-                                                       type=QFileDialog.Directory)
+        crawl_name_input_label = QLabel("Crawl name:")
+        self.crawl_name_input = QLineEdit()
+        # self.crawl_dir_input_open = FileOpenPushButton(hook_field=self.crawl_name_input,
+        #                                                title="Select",
+        #                                                mode=QFileDialog.Directory)
         
-        crawl_dir_input_layout = QHBoxLayout()
-        crawl_dir_input_layout.addWidget(crawl_dir_input_label)
-        crawl_dir_input_layout.addWidget(self.crawl_dir_input)
-        crawl_dir_input_layout.addWidget(self.crawl_dir_input_open)
+        crawl_name_input_layout = QHBoxLayout()
+        crawl_name_input_layout.addWidget(crawl_name_input_label)
+        crawl_name_input_layout.addWidget(self.crawl_name_input)
+        # crawl_name_input_layout.addWidget(self.crawl_dir_input_open)
         
         self.crawl_button = QPushButton("Start Crawling")
 
         self.addWidget(url_blacklist_splitter)
-        self.addLayout(crawl_dir_input_layout)
+        self.addLayout(crawl_name_input_layout)
         self.addWidget(self.crawl_button)
         
         self.cnt = CrawlerController(self)
@@ -94,4 +94,4 @@ class CrawlerWidget(VerticalContainer):
 
 TITLE = "Crawler"
 MAIN_WIDGET = CrawlerWidget
-VERSION = "1.0.0"
+VERSION = "1.1.0"

@@ -9,7 +9,13 @@ import sys
 import json
 import traceback
 import subprocess
+
+from PyQt5.QtCore import QStringListModel
+from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox
+
+from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader
+from modules.crawler import filemanager
 
 
 class CrawlerController:
@@ -32,8 +38,8 @@ class CrawlerController:
         Should not further adjust layouts or labels!
         """
         
-        self._view.blacklist_save.setEnabled(False)
-        self._view.url_save.setEnabled(False)
+        # self._view.blacklist_save.setEnabled(False)
+        # self._view.url_save.setEnabled(False)
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -41,64 +47,85 @@ class CrawlerController:
         This includes all functionality of state changes for primitive widgets.
         Should not initialise default state, use init_elements() for that.
         """
-        
-        self._view.url_load.clicked.connect(self.load_file)
+
+        self.setup_completion()
+
+        self._view.url_load.clicked.connect(self.load_url_file)
+        self._view.url_save.clicked.connect(self.save_url_file)
+
+        self._view.blacklist_load.clicked.connect(self.load_blacklist_file)
+        self._view.blacklist_save.clicked.connect(self.save_blacklist_file)
+
         self._view.crawl_button.clicked.connect(self.start_crawl)
-        # self._view.blacklist_load.clicked.connect(self.load_file)  # load_file must be made more generic
-    
-    def find_running(self):
-        if os.path.exists(self.RUNNING_PATH):
-            return os.listdir(self.RUNNING_PATH)
-        else:
-            return []
-    
-    def add_running(self):
-        running_crawl_dirs = self.find_running()
-        if len(running_crawl_dirs) == 0:
-            nxt = 0
-        else:
-            nums = list(map(lambda x: int(x.split("_")[1]), running_crawl_dirs))
-            nxt = max(nums)+1
+        # self._view.blacklist_load.clicked.connect(self.load_blacklist_file)  # load_url_file must be made more generic
+
+    def setup_completion(self):
+        url_model = QStringListModel()
+        url_model.setStringList(filemanager.get_url_filenames())
+        url_completer = QCompleter()
+        url_completer.setModel(url_model)
+        url_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self._view.url_input.setCompleter(url_completer)
+
+        blacklist_model = QStringListModel()
+        blacklist_model.setStringList(filemanager.get_blacklist_filenames())
+        blacklist_completer = QCompleter()
+        blacklist_completer.setModel(blacklist_model)
+        blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self._view.blacklist_input.setCompleter(blacklist_completer)
+
+    def reload(self):
+        self.setup_completion()
         
-        nxt = "crawl_{0}".format(nxt)
-        
-        try:
-            if not os.path.exists(self.RUNNING_PATH):
-                os.makedirs(self.RUNNING_PATH)
-            new_running_dir = os.path.join(self.RUNNING_PATH, nxt)
-            os.mkdir(new_running_dir)
-            
-            return nxt
-        except Exception as exc:
-            print(traceback.format_exc())
-            print(exc)
-        
-        return None  # something went wrong
-        
-    def load_file(self):
-        path = self._view.url_input.displayText()
-        area = self._view.url_area
-        
-        try:
-            with open(path) as in_file:
-                area.setPlainText(in_file.read())
-        except IOError as err:
-            print(err, file=sys.stderr)
-        except Exception as exc:
-            print(traceback.format_exc())
-            print(exc)
-    
+    def load_url_file(self):
+        filename = self._view.url_input.displayText()
+
+        content = filemanager.get_url_content(filename)
+        self._view.url_area.setPlainText(content)
+
+    def save_url_file(self):
+        filename = self._view.url_input.displayText()
+
+        content = self._view.url_area.toPlainText()
+        filemanager.save_url_content(content, filename)
+
+        self.reload()
+
+    def load_blacklist_file(self):
+        filename = self._view.blacklist_input.displayText()
+
+        content = filemanager.get_blacklist_content(filename)
+        self._view.blacklist_area.setPlainText(content)
+
+    def save_blacklist_file(self):
+        filename = self._view.blacklist_input.displayText()
+
+        content = self._view.blacklist_area.toPlainText()
+        filemanager.save_blacklist_content(content, filename)
+
+        self.reload()
+
     def start_crawl(self):
-        run_dir = self.add_running()
-        
-        if not self.setup_crawl(run_dir):
+        crawl_name = self._view.crawl_name_input.displayText()
+        if crawl_name in filemanager.get_running_crawls():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText("Error")
+            msg.setInformativeText("There is still an unfinished crawl by the name '{0}'. Pick a different name!"
+                                   .format(crawl_name))
+            msg.setWindowTitle("Error")
+            msg.exec_()
+            return
+
+        settings_path = self.setup_crawl()
+        if not settings_path:
             print("Crawl setup encountered an error. Not starting crawl.", file=sys.stderr)
             return
         
-        print("Starting {0} ..".format(run_dir))
+        print("Starting new crawl with settings in file {0} ..".format(settings_path))
         try:
             if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-                subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
+                subprocess.Popen("python scrapy_wrapper.py \"" + settings_path + "\"",
                                  stdout=sys.stdout,
                                  shell=True,
                                  start_new_session=True,
@@ -106,7 +133,7 @@ class CrawlerController:
                                  creationflags=subprocess.DETACHED_PROCESS,
                                  close_fds=True)
             else:
-                subprocess.Popen("python scrapy_wrapper.py " + os.path.join(self.RUNNING_DIR, run_dir),
+                subprocess.Popen("python scrapy_wrapper.py \"" + settings_path + "\"",
                                  stdout=sys.stdout,
                                  shell=True,
                                  start_new_session=True,
@@ -116,24 +143,25 @@ class CrawlerController:
             print(traceback.format_exc())
             print(exc)
     
-    def setup_crawl(self, run_dir):
-        full_path = os.path.join("modules", "crawler", "running", run_dir)
-        urls_path = os.path.join(full_path, "urls.txt")
-        settings_path = os.path.join(full_path, "settings.json")
-        
-        settings = {"out_dir": self._view.crawl_dir_input.displayText()}
+    def setup_crawl(self):
+        crawl_name = self._view.crawl_name_input.displayText()
+        if crawl_name in filemanager.get_crawlnames():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Question)
+            msg.setText("Continue?")
+            msg.setInformativeText("There is already data for a crawl by the name '{0}'. Continue anyway?"
+                                   .format(crawl_name))
+            msg.setWindowTitle("Continue?")
+            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            answer = msg.exec_()
+            if answer == QMessageBox.Cancel:
+                return None
 
-        urls_text = self._view.url_area.toPlainText()
-        try:
-            with open(urls_path, "w") as urls_file:
-                urls_file.write(urls_text)
-            
-            with open(settings_path, "w") as settings_file:
-                settings_file.write(json.dumps(settings))
-            
-        except Exception as exc:
-            print(traceback.format_exc())
-            print(exc)
-            return False
-        
-        return True
+        settings = {"workspace": WorkspaceManager().get_workspace(),
+                    "name": self._view.crawl_name_input.displayText(),
+                    "urls_file": self._view.url_input.displayText(),
+                    "blacklist_file": self._view.blacklist_input.displayText(),
+                    "finished_urls": []
+                    }
+
+        return filemanager.save_crawl_settings(self._view.crawl_name_input.displayText(), settings)

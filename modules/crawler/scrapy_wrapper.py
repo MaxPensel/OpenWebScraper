@@ -25,38 +25,29 @@ from langdetect import detect
 import textract
 from textract.exceptions import CommandLineError
 
+from core.Workspace import WorkspaceManager
+from modules.crawler import filemanager
+
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
 
 if len(sys.argv) >= 2:
-    SPEC_DIR = sys.argv[1]
+    SETTINGS_PATH = sys.argv[1]
 else:
-    SPEC_DIR = None
+    SETTINGS_PATH = None
 
 DEBUG = False
 if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
     DEBUG = True
 
 
-def load_urls(spec_dir):
-    url_filename = "urls.txt"
+def parse_urls(url_filecontent: str):
+    # preferably check every entry for a valid url
+    return url_filecontent.splitlines()
+
+
+def load_settings(settings_path):
     try:
-        url_file = open(os.path.join(spec_dir, url_filename), "r")
-        urls = []
-        for line in url_file:
-            urls.append(line)
-        print(urls)
-    except Exception as exc:
-        print(traceback.format_exc())
-        print(exc)
-        return None
-
-    return urls
-
-
-def load_settings(spec_dir):
-    settings_filename = "settings.json"
-    try:
-        settings_file = open(os.path.join(spec_dir, settings_filename), "r")
+        settings_file = open(settings_path, "r")
         settings = json.load(settings_file)
         print(settings)
     except Exception as exc:
@@ -67,13 +58,6 @@ def load_settings(spec_dir):
     return settings
 
 
-def delete_path(path):
-    # combination of the following three delete the full directory tree whose root is specified by path
-    shutil.rmtree(path)
-    os.makedirs(path)
-    os.removedirs(path)
-
-
 class WebsiteParagraph(scrapy.Item):
     # define the fields for your item here like:
     url = scrapy.Field()
@@ -82,8 +66,10 @@ class WebsiteParagraph(scrapy.Item):
     pass
 
 
-def create_spider(urls, settings):
+def create_spider(settings):
     class GenericCrawlSpider(CrawlSpider):
+        crawl_settings = settings
+
         name = 'generic_crawler'
 
         denied_extensions = ('mng', 'pct', 'bmp', 'gif', 'jpg', 'jpeg', 'png', 'pst', 'psp', 'tif', 'tiff', 'ai', 'drw',
@@ -93,10 +79,8 @@ def create_spider(urls, settings):
                              'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
                              )
 
-        start_urls = urls
+        start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
         allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
-
-        run_settings = settings
 
         # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
         rules = [
@@ -133,8 +117,12 @@ def create_spider(urls, settings):
         def handle_pdf(self, response):
             # print("Warning: pdf not yet supported")
             filename = response.url.split('/')[-1]
-            pdf_tmp_dir = os.path.join(self.run_settings["spec_dir"], "PDF_TMP")
-            txt_tmp_dir = os.path.join(self.run_settings["spec_dir"], "TXT_TMP")
+            pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
+                                       filemanager.running_crawl_settings_path,
+                                       "PDF_TMP")
+            txt_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
+                                       filemanager.running_crawl_settings_path,
+                                       "TXT_TMP")
             if not os.path.exists(pdf_tmp_dir):
                 os.makedirs(pdf_tmp_dir)
             filepath = os.path.join(pdf_tmp_dir, filename)
@@ -216,7 +204,9 @@ class GenericCrawlPipeline(object):
             self.dataframes[domain] = pd.DataFrame(columns=["url", "content"])
 
     def close_spider(self, spider):
-        output_dir = spider.run_settings["out_dir"]
+        output_dir = os.path.join(spider.crawl_settings["workspace"],
+                                  filemanager.raw_data_path,
+                                  spider.crawl_settings["name"])
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -232,11 +222,13 @@ class GenericCrawlPipeline(object):
                 errors.append(exc)
 
         if not DEBUG:
+            global SETTINGS_PATH
             if len(errors) == 0:
-                delete_path(spider.run_settings["spec_dir"])
+                filemanager.delete_and_clean(SETTINGS_PATH)
             else:
-                print("The following errors have been encountered during the finalisation of the crawl specified in {0}"
-                      .format(spider.run_settings["spec_dir"]), file=sys.stderr)
+                print("The following errors have been encountered during the finalisation of the crawl specified in "
+                      "{0}. Keeping settings file."
+                      .format(SETTINGS_PATH), file=sys.stderr)
                 for exc in errors:
                     print(exc, file=sys.stderr)
 
@@ -252,22 +244,20 @@ class GenericCrawlSettings(Settings):
             })
 
 
-if SPEC_DIR is None:
+if SETTINGS_PATH is None:
     print("Error: no specification directory given. Call scrapy_wrapper.py as follows:\n" +
           "  python scrapy_wrapper.py <spec_dir> [DEBUG]\n" +
           "  <spec_dir> should contain a urls.txt and settings.json",
           file=sys.stderr)
     exit()
 
+crawl_settings = load_settings(SETTINGS_PATH)
+WorkspaceManager(crawl_settings["workspace"])  # Load it once, so that singleton is initialized to the correct workspace
+
 scrapy_settings = GenericCrawlSettings()
 
-url_list = load_urls(SPEC_DIR)
-
-run_settings = load_settings(SPEC_DIR)
-run_settings["spec_dir"] = SPEC_DIR
-
 process = CrawlerProcess(settings=scrapy_settings)
-process.crawl(create_spider(url_list, run_settings))
+process.crawl(create_spider(crawl_settings))
 try:
     process.start()
 except Exception as error:
