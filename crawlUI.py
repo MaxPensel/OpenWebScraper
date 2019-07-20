@@ -1,8 +1,8 @@
-'''
+"""
 Created on 24.05.2019
 
 @author: Maximilian Pensel
-'''
+"""
 
 import importlib
 import os
@@ -15,13 +15,15 @@ from PyQt5 import QtWidgets
 
 VERSION = "1.1.0"
 
+
 class MainWidget(QTabWidget):
-        
+
     def __init__(self, parent):
-        ''' Setup UI structure in reverse '''
+        """" Setup UI structure in reverse """
         super().__init__(parent)
         
         self.main_window = parent
+        self.info_window = None
         
         parent.setCentralWidget(self)
         
@@ -29,7 +31,7 @@ class MainWidget(QTabWidget):
         
         self.init_toolbar()
     
-    def register_modules(self, modules:{}):
+    def register_modules(self, modules: {}):
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
     
@@ -37,8 +39,8 @@ class MainWidget(QTabWidget):
         toolbar = QToolBar()
         toolbar.setMovable(False)
         
-        spacer = QWidget();
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding);
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         toolbar.addWidget(spacer)
         
@@ -62,9 +64,12 @@ class MainWidget(QTabWidget):
         self.main_window.addToolBar(toolbar)
     
     def info_button_click(self):
-        if not hasattr(self, "info_window") or not self.info_window.isVisible():
+        if self.info_window is None:
             self.info_window = InfoWindow(self)
+
+        if not self.info_window.isVisible():
             self.info_window.show()
+
 
 class InfoWindow(QMainWindow):
     
@@ -76,14 +81,15 @@ class InfoWindow(QMainWindow):
         self.setWindowIcon(QIcon("resources/info.png"))
         
         versions = {}
-        for dir in os.listdir(ModLoader.MOD_DIR):
-            if os.path.exists(os.path.join(ModLoader.MOD_DIR, dir, "view.py")):
+        for mod_dir in os.listdir(ModLoader.MOD_DIR):
+            if os.path.exists(os.path.join(ModLoader.MOD_DIR, mod_dir, "view.py")):
                 try:
-                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + dir + ".view", ModLoader.MOD_DIR + "." + dir)
+                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + mod_dir + ".view",
+                                                  ModLoader.MOD_DIR + "." + mod_dir)
                     if hasattr(mod, "VERSION"):
-                        versions[dir] = "v{0}".format(mod.VERSION)
+                        versions[mod_dir] = "v{0}".format(mod.VERSION)
                     else:
-                        versions[dir] = "- not supported -"
+                        versions[mod_dir] = "- not supported -"
                 except Exception as er:
                     print(er)
         
@@ -113,25 +119,24 @@ class InfoWindow(QMainWindow):
         for i in range(central.rowCount()):
             for j in range(central.columnCount()):
                 central.item(i, j).setFlags(Qt.ItemIsEnabled) 
-                #central.item(i, j).setFlags(Qt.ItemIsSelectable)
-        
-        
-        self.setCentralWidget(central)
-        
-        
+                # central.item(i, j).setFlags(Qt.ItemIsSelectable)
 
-class ModLoader():
+        self.setCentralWidget(central)
+
+
+class ModLoader:
 
     MOD_DIR = "modules"
 
     def __init__(self):
-        pass
-        
-    def load_modules(self, mods:{}):
         self.modules = []
+
+    def load_modules(self, mods: {}):
+
         for modname in mods:
             try: 
-                mod = importlib.import_module(self.MOD_DIR + "." + modname + ".view", self.MOD_DIR + "." + modname)
+                mod = importlib.import_module(ModLoader.MOD_DIR + "." + modname + ".view",
+                                              ModLoader.MOD_DIR + "." + modname)
                 
                 if not hasattr(mod, "TITLE"):
                     mod.TITLE = modname
@@ -145,39 +150,44 @@ class ModLoader():
                 print("{0}: {1}".format(type(ex).__name__, ex))
                 
 
-class Settings():
+class Settings:
     
-    def __init__(self, settings_file:str):
-        if not os.path.exists(settings_file):
-            print("{0} not found, loading defaults.".format(settings_file))
+    def __init__(self, settings_file_path: str):
+        # init always relevant settings
+        self.modules = []
+        
+        if not os.path.exists(settings_file_path):
+            print("{0} not found, loading defaults.".format(settings_file_path))
         else:
-            with open(settings_file, "r") as settings:
+            with open(settings_file_path, "r") as settings_file:
                 l_num = 0
-                for line in settings.readlines():
+                for line in settings_file.readlines():
                     l_num += 1
                     try:
                         self.parse_line(line)
-                    except:
-                        print("Bad format in line {0} in settings file. Format should be 'key=value', where 'key' is a string and 'value' a json-string.".format(l_num))
-                    
-        
-        self.defaults() # adds the defaults for missing but expected fields
+                    except IndexError or TypeError or json.JSONDecodeError:
+                        print("Bad format in line {0} in settings file. Format should be 'key=value', where 'key' is "
+                              "a string and 'value' a json-string.".format(l_num))
+
+        self.defaults()  # adds the defaults for missing but expected fields
     
-    def parse_line(self, line:str):
+    def parse_line(self, line: str):
         line = line.lstrip()
-        if not self.is_line_comment(line):
+        if not Settings.is_line_comment(line):
             key_value = line.split("=")
             setattr(self, key_value[0], json.loads(key_value[1]))
         
-    def is_line_empty(self, line:str) -> bool:
+    @staticmethod
+    def is_line_empty(line: str) -> bool:
         return len(line) == 0
     
-    def is_line_comment(self, line) -> bool:
-        return self.is_line_empty(line) or line[0] == "#"
+    @staticmethod
+    def is_line_comment(line) -> bool:
+        return Settings.is_line_empty(line) or line[0] == "#"
     
     def defaults(self):
-        if not hasattr(self, "modules"):
-            self.modules = ["crawler"]
+        if not self.modules:  # has no modules specified
+            self.modules = ["template"]
 
 
 if __name__ == "__main__":
@@ -193,7 +203,6 @@ if __name__ == "__main__":
     mod_loader.load_modules(settings.modules)
     
     ui.register_modules(mod_loader.modules)
-    
     
     main_window.setGeometry(200, 200, 800, 500)
     main_window.setWindowTitle("SpiderGUI")
