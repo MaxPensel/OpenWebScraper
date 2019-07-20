@@ -105,7 +105,7 @@ class MainWidget(QTabWidget):
 
     def reload_modules(self, modules: {}):
         for i in range(self.count()):
-            self.removeTab(i)
+            self.removeTab(0)
 
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
