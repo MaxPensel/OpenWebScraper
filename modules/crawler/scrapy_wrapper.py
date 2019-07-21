@@ -101,6 +101,9 @@ def create_spider(settings):
 
             return items
 
+        # ensure that start_urls are also parsed
+        parse_start_url = parse_item
+
         def handle_html(self, response):
             items = []
 
