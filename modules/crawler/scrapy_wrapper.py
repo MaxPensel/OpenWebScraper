@@ -68,6 +68,7 @@ class WebsiteParagraph(scrapy.Item):
 
 def create_spider(settings):
     class GenericCrawlSpider(CrawlSpider):
+
         crawl_settings = settings
 
         name = 'generic_crawler'
@@ -193,47 +194,23 @@ class GenericCrawlPipeline(object):
         url = item['url']
         content = item['content']
         df_item = {"url": [url], "content": [content]}
+
         domain = urlparse(url).netloc
-        if domain in self.dataframes:
+        if domain in spider.allowed_domains:
             print("Adding content for ", str(url), "to", str(domain))
-            self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
+            # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
+            filemanager.add_to_csv(spider.crawl_settings["name"], domain, df_item)
 
         return item
 
     def open_spider(self, spider):
-        self.dataframes = {}
-
+        filemanager.make_raw_data_path(spider.crawl_settings["name"])
         for domain in spider.allowed_domains:
-            self.dataframes[domain] = pd.DataFrame(columns=["url", "content"])
+            filemanager.create_csv(spider.crawl_settings["name"], domain, True)
 
     def close_spider(self, spider):
-        output_dir = os.path.join(spider.crawl_settings["workspace"],
-                                  filemanager.raw_data_path,
-                                  spider.crawl_settings["name"])
-
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        errors = []
-
-        for url in self.dataframes:
-            try:
-                filename = os.path.join(output_dir, url+".csv")
-                print("Writing to", filename)
-                self.dataframes[url].to_csv(filename, sep=";", index=False, encoding="utf-8")
-            except Exception as exc:
-                errors.append(exc)
-
-        if not DEBUG:
-            global SETTINGS_PATH
-            if len(errors) == 0:
-                filemanager.delete_and_clean(SETTINGS_PATH)
-            else:
-                print("The following errors have been encountered during the finalisation of the crawl specified in "
-                      "{0}. Keeping settings file."
-                      .format(SETTINGS_PATH), file=sys.stderr)
-                for exc in errors:
-                    print(exc, file=sys.stderr)
+        # if csv file needs to be finalized, this is the place to do it!
+        return
 
 
 class GenericCrawlSettings(Settings):
@@ -243,7 +220,8 @@ class GenericCrawlSettings(Settings):
             "ITEM_PIPELINES": {"scrapy_wrapper.GenericCrawlPipeline": 300},
             "DEPTH_LIMIT": 5,
             "FEED_EXPORT_ENCODING": "utf-8",
-            "LOG_LEVEL": "WARNING"
+            "LOG_LEVEL": "WARNING",
+            # "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log")
             })
 
 
@@ -254,14 +232,16 @@ if SETTINGS_PATH is None:
           file=sys.stderr)
     exit()
 
-crawl_settings = load_settings(SETTINGS_PATH)
-WorkspaceManager(crawl_settings["workspace"])  # Load it once, so that singleton is initialized to the correct workspace
 
-scrapy_settings = GenericCrawlSettings()
+if __name__ == '__main__':
+    crawl_settings = load_settings(SETTINGS_PATH)
+    WorkspaceManager(crawl_settings["workspace"])  # Load it once, so that singleton is initialized to the correct workspace
 
-process = CrawlerProcess(settings=scrapy_settings)
-process.crawl(create_spider(crawl_settings))
-try:
-    process.start()
-except Exception as error:
-    print("Warning: Don't worry, the crawl finished, strange error still fired for some reason.", error)
+    scrapy_settings = GenericCrawlSettings()
+
+    process = CrawlerProcess(settings=scrapy_settings)
+    process.crawl(create_spider(crawl_settings))
+    try:
+        process.start()
+    except Exception as error:
+        print("Warning: Don't worry, the crawl finished, strange error still fired for some reason.", error)

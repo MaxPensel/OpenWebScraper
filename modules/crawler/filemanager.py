@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import traceback
+import pandas
 
 from core.Workspace import WorkspaceManager
 
@@ -112,6 +113,31 @@ def delete_and_clean(path, ignore_empty=False):
         shutil.rmtree(path)
         os.makedirs(path)
         os.removedirs(path)
+
+
+def make_raw_data_path(crawl: str):
+    global raw_data_path
+    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl)
+    if not os.path.exists(fullpath):
+        os.makedirs(fullpath)
+
+
+def create_csv(crawl: str, domain: str, overwrite=False):
+    global raw_data_path
+    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+
+    if overwrite or not os.path.exists(fullpath):
+        df = pandas.DataFrame(columns=["url", "content"])
+        df.to_csv(fullpath, sep=";", index=False, encoding="utf-8")
+
+
+def add_to_csv(crawl: str, domain: str, data: dict):
+    global raw_data_path
+    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+
+    if os.path.exists(fullpath):
+        df = pandas.DataFrame.from_dict(data)
+        df.to_csv(fullpath, mode="a", sep=";", index=False, encoding="utf-8", header=False, line_terminator="")
 
 
 def __get_filenames_of_type(ext, path, directories=False):
