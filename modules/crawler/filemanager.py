@@ -122,22 +122,33 @@ def make_raw_data_path(crawl: str):
         os.makedirs(fullpath)
 
 
-def create_csv(crawl: str, domain: str, overwrite=False):
+def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
     global raw_data_path
-    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+    inc = "-INCOMPLETE" if incomplete else ""
+    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
 
     if overwrite or not os.path.exists(fullpath):
         df = pandas.DataFrame(columns=["url", "content"])
         df.to_csv(fullpath, sep=";", index=False, encoding="utf-8")
 
 
-def add_to_csv(crawl: str, domain: str, data: dict):
+def add_to_csv(crawl: str, domain: str, data: dict, incomplete=True):
     global raw_data_path
-    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+    inc = "-INCOMPLETE" if incomplete else ""
+    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
 
     if os.path.exists(fullpath):
         df = pandas.DataFrame.from_dict(data)
         df.to_csv(fullpath, mode="a", sep=";", index=False, encoding="utf-8", header=False, line_terminator="")
+
+
+def complete_csv(crawl: str, domain: str):
+    global raw_data_path
+    inc = "-INCOMPLETE"
+    fullpath_inc = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
+    fullpath_com = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+
+    shutil.move(fullpath_inc, fullpath_com)
 
 
 def __get_filenames_of_type(ext, path, directories=False):

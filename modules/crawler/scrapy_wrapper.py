@@ -209,8 +209,9 @@ class GenericCrawlPipeline(object):
             filemanager.create_csv(spider.crawl_settings["name"], domain, True)
 
     def close_spider(self, spider):
-        # if csv file needs to be finalized, this is the place to do it!
-        return
+        for domain in spider.allowed_domains:
+            filemanager.complete_csv(spider.crawl_settings["name"], domain)
+
 
 
 class GenericCrawlSettings(Settings):
