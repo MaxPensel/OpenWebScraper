@@ -128,7 +128,7 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
     fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
 
     if overwrite or not os.path.exists(fullpath):
-        df = pandas.DataFrame(columns=["url", "content"])
+        df = pandas.DataFrame(columns=["url", "content", "depth"])
         df.to_csv(fullpath, sep=";", index=False, encoding="utf-8")
 
 

@@ -42,7 +42,7 @@ if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
 
 def parse_urls(url_filecontent: str):
     # preferably check every entry for a valid url
-    return url_filecontent.splitlines()
+    return list(set(url_filecontent.splitlines()))
 
 
 def load_settings(settings_path):
@@ -62,16 +62,24 @@ class WebsiteParagraph(scrapy.Item):
     # define the fields for your item here like:
     url = scrapy.Field()
     content = scrapy.Field()
+    depth = scrapy.Field()
 
     pass
 
 
-def create_spider(settings):
+def create_spider(settings, start_url, crawler_name):
     class GenericCrawlSpider(CrawlSpider):
 
         crawl_settings = settings
 
-        name = 'generic_crawler'
+        domain = urlparse(start_url).netloc
+
+        #name = 'generic_crawler'
+        name = crawler_name
+
+        allowed_domains = [domain]
+
+        start_urls = [start_url]
 
         denied_extensions = ('mng', 'pct', 'bmp', 'gif', 'jpg', 'jpeg', 'png', 'pst', 'psp', 'tif', 'tiff', 'ai', 'drw',
                              'dxf', 'eps', 'ps', 'svg', 'mp3', 'wma', 'ogg', 'wav', 'ra', 'aac', 'mid', 'au', 'aiff',
@@ -80,8 +88,8 @@ def create_spider(settings):
                              'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
                              )
 
-        start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
-        allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
+        # start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
+        # allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
 
         # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
         rules = [
@@ -155,7 +163,7 @@ def create_spider(settings):
 
             # Cleanup temporary pdf directory, unless in debug mode
             if not DEBUG:
-                delete_path(pdf_tmp_dir)
+                filemanager.delete_path(pdf_tmp_dir)
 
             return items
 
@@ -166,7 +174,7 @@ def create_spider(settings):
                 try:
                     lang = detect(par_content)
                     if lang in ACCEPTED_LANG:
-                        items.append(self.make_scrapy_item(response.url, par_content))
+                        items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
                 except LangDetectException as exc:
                     print("Error: {0} on langdetect input '{1}'. Being careful and storing the value anyway!"
                           .format(exc, par_content),
@@ -174,15 +182,16 @@ def create_spider(settings):
                     # Storing the value if language detection has failed. This behaviour remains to be evaluated.
                     # Of course repeating code is ugly, but language detection works the same with pdf and html,
                     # so being outsourced in the future anyway.
-                    items.append(self.make_scrapy_item(response.url, par_content))
+                    items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
 
             return items
 
         @staticmethod
-        def make_scrapy_item(url, content):
+        def make_scrapy_item(url, content, depth):
             item = WebsiteParagraph()
             item["url"] = url
             item["content"] = content
+            item["depth"] = depth
             return item
 
     return GenericCrawlSpider
@@ -193,25 +202,27 @@ class GenericCrawlPipeline(object):
     def process_item(self, item, spider):
         url = item['url']
         content = item['content']
-        df_item = {"url": [url], "content": [content]}
+        df_item = dict()
+        for key in item:
+            #df_item = {"url": [url], "content": [content]}
+            df_item[key] = [item[key]]
 
         domain = urlparse(url).netloc
         if domain in spider.allowed_domains:
-            print("Adding content for ", str(url), "to", str(domain))
+            print("Adding content for ", str(url), "to", str(spider.name))
             # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
-            filemanager.add_to_csv(spider.crawl_settings["name"], domain, df_item)
+            filemanager.add_to_csv(spider.crawl_settings["name"], spider.name, df_item)
 
         return item
 
     def open_spider(self, spider):
         filemanager.make_raw_data_path(spider.crawl_settings["name"])
         for domain in spider.allowed_domains:
-            filemanager.create_csv(spider.crawl_settings["name"], domain, True)
+            filemanager.create_csv(spider.crawl_settings["name"], spider.name, True)
 
     def close_spider(self, spider):
         for domain in spider.allowed_domains:
-            filemanager.complete_csv(spider.crawl_settings["name"], domain)
-
+            filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
 
 
 class GenericCrawlSettings(Settings):
@@ -222,6 +233,9 @@ class GenericCrawlSettings(Settings):
             "DEPTH_LIMIT": 5,
             "FEED_EXPORT_ENCODING": "utf-8",
             "LOG_LEVEL": "WARNING",
+            "DEPTH_PRIORITY": 1,
+            "SCHEDULER_DISK_QUEUE": 'scrapy.squeues.PickleFifoDiskQueue',
+            "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue'
             # "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log")
             })
 
@@ -241,7 +255,13 @@ if __name__ == '__main__':
     scrapy_settings = GenericCrawlSettings()
 
     process = CrawlerProcess(settings=scrapy_settings)
-    process.crawl(create_spider(crawl_settings))
+    start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
+    allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
+    domain_name = len(start_urls) == len(set(allowed_domains))
+    for url in start_urls:
+        # find a better way for naming crawlers uniquely
+        name = urlparse(url).netloc if domain_name else (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
+        process.crawl(create_spider(crawl_settings, url, name))
     try:
         process.start()
     except Exception as error:
