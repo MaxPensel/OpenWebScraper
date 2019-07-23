@@ -7,9 +7,11 @@ For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPi
 
 @author: Maximilian Pensel
 """
+import logging
 import sys
 import os
 import shutil
+from logging import FileHandler, Formatter, StreamHandler
 
 import pandas as pd
 import json
@@ -49,10 +51,10 @@ def load_settings(settings_path):
     try:
         settings_file = open(settings_path, "r")
         settings = json.load(settings_file)
-        print(settings)
+        print("Starting crawl with the following settings: {0}".format(settings))
     except Exception as exc:
-        print(traceback.format_exc())
-        print(exc)
+        print(traceback.format_exc(), file=sys.stderr)
+        print(exc, file=sys.stderr)
         return None
 
     return settings
@@ -99,8 +101,26 @@ def create_spider(settings, start_url, crawler_name):
                                     deny_extensions=denied_extensions), callback='parse_item', follow=True)
         ]
 
+        def __init__(self):
+            super().__init__()
+            # setup individual logger for every spider
+            log_fmt = Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s")
+
+            log_fh = FileHandler(os.path.join(WorkspaceManager().get_workspace(), "logs", name + ".log"),
+                            mode="w")
+            log_fh.setFormatter(log_fmt)
+            log_fh.setLevel(logging.DEBUG)
+
+            log_ch = StreamHandler(sys.stdout)
+            log_ch.setLevel(logging.INFO)
+            log_ch.setFormatter(log_fmt)
+
+            self.logger.logger.addHandler(log_fh)
+            self.logger.logger.addHandler(log_ch)
+            self.logger.debug("[__init__] - Logger setup finished.")
+
         def parse_item(self, response):
-            print(response.url)
+            self.logger.info("[parse_item] - Processing {0}".format(response.url))
 
             ct = str(response.headers.get(b"Content-Type", "").lower())
             if "pdf" in ct:
@@ -127,7 +147,6 @@ def create_spider(settings, start_url, crawler_name):
             return items
 
         def handle_pdf(self, response):
-            # print("Warning: pdf not yet supported")
             filename = response.url.split('/')[-1]
             pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
                                        filemanager.running_crawl_settings_path,
@@ -145,7 +164,7 @@ def create_spider(settings, start_url, crawler_name):
             try:
                 content = textract.process(filepath)
             except CommandLineError as exc:  # Catching either ExtensionNotSupported or MissingFileError
-                print(exc, file=sys.stderr)
+                self.logger.error(exc)
                 return []  # In any case, text extraction failed so no items were parsed
 
             global DEBUG  # fetch DEBUG flag
@@ -163,7 +182,7 @@ def create_spider(settings, start_url, crawler_name):
 
             # Cleanup temporary pdf directory, unless in debug mode
             if not DEBUG:
-                filemanager.delete_path(pdf_tmp_dir)
+                filemanager.delete_and_clean(pdf_tmp_dir)
 
             return items
 
@@ -176,9 +195,9 @@ def create_spider(settings, start_url, crawler_name):
                     if lang in ACCEPTED_LANG:
                         items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
                 except LangDetectException as exc:
-                    print("Error: {0} on langdetect input '{1}'. Being careful and storing the value anyway!"
-                          .format(exc, par_content),
-                          file=sys.stderr)
+                    self.logger.error("[process_paragraph] - Error: "
+                                      "{0} on langdetect input '{1}'. Being careful and storing the value anyway!"
+                                      .format(exc, par_content))
                     # Storing the value if language detection has failed. This behaviour remains to be evaluated.
                     # Of course repeating code is ugly, but language detection works the same with pdf and html,
                     # so being outsourced in the future anyway.
@@ -209,7 +228,7 @@ class GenericCrawlPipeline(object):
 
         domain = urlparse(url).netloc
         if domain in spider.allowed_domains:
-            print("Adding content for ", str(url), "to", str(spider.name))
+            spider.logger.info("[process_item] - Adding content for {0} to {1}".format(str(url), str(spider.name)))
             # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
             filemanager.add_to_csv(spider.crawl_settings["name"], spider.name, df_item)
 
@@ -235,8 +254,8 @@ class GenericCrawlSettings(Settings):
             "LOG_LEVEL": "WARNING",
             "DEPTH_PRIORITY": 1,
             "SCHEDULER_DISK_QUEUE": 'scrapy.squeues.PickleFifoDiskQueue',
-            "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue'
-            # "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log")
+            "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue',
+            "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log")
             })
 
 
@@ -265,4 +284,4 @@ if __name__ == '__main__':
     try:
         process.start()
     except Exception as error:
-        print("Warning: Don't worry, the crawl finished, strange error still fired for some reason.", error)
+        print(error, file=sys.stderr)
