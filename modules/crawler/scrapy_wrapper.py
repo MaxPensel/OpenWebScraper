@@ -7,13 +7,19 @@ For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPi
 
 @author: Maximilian Pensel
 """
-import logging
 import sys
 import os
+
+if __name__ == '__main__':
+    # make sure the project root is on the PYTHONPATH
+    sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
+
+import logging
+
 import shutil
 from logging import FileHandler, Formatter, StreamHandler
 
-import pandas as pd
+import pandas
 import json
 import traceback
 import scrapy
@@ -76,7 +82,7 @@ def create_spider(settings, start_url, crawler_name):
 
         domain = urlparse(start_url).netloc
 
-        #name = 'generic_crawler'
+        # name = 'generic_crawler'
         name = crawler_name
 
         allowed_domains = [domain]
@@ -107,7 +113,7 @@ def create_spider(settings, start_url, crawler_name):
             log_fmt = Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s")
 
             log_fh = FileHandler(os.path.join(WorkspaceManager().get_workspace(), "logs", name + ".log"),
-                            mode="w")
+                                 mode="w")
             log_fh.setFormatter(log_fmt)
             log_fh.setLevel(logging.DEBUG)
 
@@ -182,7 +188,7 @@ def create_spider(settings, start_url, crawler_name):
 
             # Cleanup temporary pdf directory, unless in debug mode
             if not DEBUG:
-                filemanager.delete_and_clean(pdf_tmp_dir)
+                filemanager.delete_and_clean(pdf_tmp_dir, ignore_empty=True)
 
             return items
 
@@ -223,7 +229,7 @@ class GenericCrawlPipeline(object):
         content = item['content']
         df_item = dict()
         for key in item:
-            #df_item = {"url": [url], "content": [content]}
+            # df_item = {"url": [url], "content": [content]}
             df_item[key] = [item[key]]
 
         domain = urlparse(url).netloc
@@ -244,7 +250,7 @@ class GenericCrawlPipeline(object):
             filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
 
 
-class GenericCrawlSettings(Settings):
+class GenericScrapySettings(Settings):
 
     def __init__(self):
         super().__init__(values={
@@ -269,9 +275,14 @@ if SETTINGS_PATH is None:
 
 if __name__ == '__main__':
     crawl_settings = load_settings(SETTINGS_PATH)
-    WorkspaceManager(crawl_settings["workspace"])  # Load it once, so that singleton is initialized to the correct workspace
+    # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
+    WorkspaceManager(crawl_settings["workspace"])
 
-    scrapy_settings = GenericCrawlSettings()
+    if not DEBUG:
+        sys.stdout = open(os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"), 'a')
+        sys.stderr = sys.stdout
+
+    scrapy_settings = GenericScrapySettings()
 
     process = CrawlerProcess(settings=scrapy_settings)
     start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
@@ -285,3 +296,23 @@ if __name__ == '__main__':
         process.start()
     except Exception as error:
         print(error, file=sys.stderr)
+
+    # every spider finished, finalize crawl
+    crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings["name"])
+    crawl_dir = filemanager.get_crawl_path(crawl_settings["name"])
+    info_df = pandas.DataFrame(columns=["url", "paragraphs"])
+    one_incomplete = False
+    for csv in os.listdir(crawl_raw_dir):
+        # As soon as there still is an incomplete file set one_incomplete = True
+        one_incomplete = one_incomplete or filemanager.incomplete_flag in csv
+        fullpath = os.path.join(crawl_raw_dir, csv)
+        df = pandas.read_csv(fullpath, sep=None, engine="python")
+        row = dict()
+        row["url"] = csv
+        row["paragraphs"] = df.count()["url"]
+        info_df = info_df.append(row, ignore_index=True)
+
+    filemanager.save_crawl_info(crawl_settings["name"], info_df)
+
+    if not one_incomplete:
+        filemanager.finalize_crawl(crawl_settings["name"])

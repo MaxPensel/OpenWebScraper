@@ -12,10 +12,25 @@ import pandas
 
 from core.Workspace import WorkspaceManager
 
-raw_data_path = os.path.join("data", "raw")
 running_crawl_settings_path = "running"
 url_file_extension = "urls"
 blacklist_file_extension = "blacklist"
+incomplete_flag = "-INCOMPLETE"
+
+
+def get_crawl_raw_path(crawlname):
+    """ Returns '%workspace-dir%/data/%crawlname%/raw/' """
+    return os.path.join(get_crawl_path(crawlname), "raw")
+
+
+def get_crawl_path(crawlname):
+    """ Returns '%workspace-dir%/data/%crawlname%/' """
+    return os.path.join(get_data_path(), crawlname)
+
+
+def get_data_path():
+    """ Returns '%workspace-dir%/data/' """
+    return os.path.join(WorkspaceManager().get_workspace(), "data")
 
 
 def get_url_filenames():
@@ -33,11 +48,7 @@ def get_blacklist_filenames():
 
 
 def get_crawlnames():
-    global raw_data_path
-    wsm = WorkspaceManager()
-    raw_fullpath = os.path.join(wsm.get_workspace(), raw_data_path)
-
-    return __get_filenames_of_type("", raw_fullpath, directories=True)
+    return __get_filenames_of_type("", get_data_path(), directories=True)
 
 
 def get_url_content(filename):
@@ -74,6 +85,10 @@ def save_blacklist_content(content, filename):
     filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + blacklist_file_extension)
 
     __save_file_content(content, filepath)
+
+
+def save_crawl_info(crawl, info_df: pandas.DataFrame):
+    info_df.to_excel(os.path.join(get_crawl_path(crawl), "info.xls"), index=False)
 
 
 def get_running_crawls():
@@ -116,16 +131,15 @@ def delete_and_clean(path, ignore_empty=False):
 
 
 def make_raw_data_path(crawl: str):
-    global raw_data_path
-    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl)
-    if not os.path.exists(fullpath):
-        os.makedirs(fullpath)
+    path = get_crawl_raw_path(crawl)
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 
 def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
-    global raw_data_path
-    inc = "-INCOMPLETE" if incomplete else ""
-    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
+    global incomplete_flag
+    inc = incomplete_flag if incomplete else ""
+    fullpath = os.path.join(get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if overwrite or not os.path.exists(fullpath):
         df = pandas.DataFrame(columns=["url", "content", "depth"])
@@ -133,9 +147,9 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
 
 
 def add_to_csv(crawl: str, domain: str, data: dict, incomplete=True):
-    global raw_data_path
-    inc = "-INCOMPLETE" if incomplete else ""
-    fullpath = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
+    global incomplete_flag
+    inc = incomplete_flag if incomplete else ""
+    fullpath = os.path.join(get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if os.path.exists(fullpath):
         df = pandas.DataFrame.from_dict(data)
@@ -143,12 +157,23 @@ def add_to_csv(crawl: str, domain: str, data: dict, incomplete=True):
 
 
 def complete_csv(crawl: str, domain: str):
-    global raw_data_path
-    inc = "-INCOMPLETE"
-    fullpath_inc = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + inc + ".csv")
-    fullpath_com = os.path.join(WorkspaceManager().get_workspace(), raw_data_path, crawl, domain + ".csv")
+    global incomplete_flag
+    crawl_path = get_crawl_raw_path(crawl)
+    fullpath_inc = os.path.join(crawl_path, domain + incomplete_flag + ".csv")
+    fullpath_com = os.path.join(crawl_path, domain + ".csv")
 
     shutil.move(fullpath_inc, fullpath_com)
+
+
+def finalize_crawl(crawl):
+    global running_crawl_settings_path
+    running_filename = crawl + ".json"
+    running_file = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path, running_filename)
+    destination = os.path.join(get_crawl_path(crawl), running_filename)
+
+    shutil.move(running_file, destination)
+
+    delete_and_clean(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path))
 
 
 def __get_filenames_of_type(ext, path, directories=False):

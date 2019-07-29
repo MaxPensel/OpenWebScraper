@@ -122,18 +122,20 @@ class CrawlerController:
             print("Crawl setup encountered an error. Not starting crawl.", file=sys.stderr)
             return
         
-        print("Starting new crawl with settings in file {0} ..".format(settings_path))
+        print("Starting new crawl with settings in file {0}".format(settings_path))
+        # the following needs to be made configurable!!!
+        python_exe = os.path.join(os.getcwd(), "WinPython-Zero", "python.exe")
         try:
             if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-                subprocess.Popen("python scrapy_wrapper.py \"" + settings_path + "\"",
-                                 stdout=sys.stdout,
-                                 shell=True,
-                                 start_new_session=True,
-                                 cwd="modules/crawler/",
-                                 creationflags=subprocess.DETACHED_PROCESS,
-                                 close_fds=True)
+                p = subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+                                     stdout=sys.stdout,
+                                     shell=True,
+                                     start_new_session=True,
+                                     cwd="modules/crawler/",
+                                     creationflags=subprocess.DETACHED_PROCESS,
+                                     close_fds=True)
             else:
-                subprocess.Popen("python scrapy_wrapper.py \"" + settings_path + "\"",
+                subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
                                  stdout=sys.stdout,
                                  shell=True,
                                  start_new_session=True,
