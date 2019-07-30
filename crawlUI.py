@@ -191,9 +191,11 @@ class ModLoader:
 
 class Settings:
     
-    def __init__(self, settings_file_path: str):
+    def __init__(self, settings_file_path: str = "settings.ini"):
         # init always relevant settings
         self.modules = []
+        self.venv = ""
+        self.python = ""
         
         if not os.path.exists(settings_file_path):
             print("{0} not found, loading defaults.".format(settings_file_path))
@@ -227,13 +229,18 @@ class Settings:
     def defaults(self):
         if not self.modules:  # has no modules specified
             self.modules = ["template"]
+        if not self.venv:  # has no modules specified
+            self.venv = os.path.join(".", "venv")
+        if not self.python:  # has no modules specified
+            self.python = "C:\\ProgramData\\Anaconda3\\python.exe"
+
 
 
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
 
-    window = UIWindow(Settings("settings.ini"))
+    window = UIWindow(Settings())
 
     window.show()
 
