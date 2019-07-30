@@ -6,7 +6,7 @@ Created on 27.05.2019
 from core.QtExtensions import VerticalContainer, FileOpenPushButton
 from modules.crawler.controller import CrawlerController
 from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter, \
-    QFileDialog, QCompleter
+    QFileDialog, QCompleter, QComboBox, QGroupBox, QVBoxLayout
 from PyQt5.QtWidgets import QHBoxLayout
 
 
@@ -17,60 +17,48 @@ class CrawlerWidget(VerticalContainer):
         super().__init__()
         
         # setup url side
-        url_input_label = QLabel("URL File:")
+        self.url_select = QComboBox()
         self.url_input = QLineEdit()
-        # self.url_input_open = FileOpenPushButton(hook_field=self.url_input)
-        
-        self.url_area = QPlainTextEdit()
-        self.url_load = QPushButton("Load")
-        self.url_append = QPushButton("Append")
         self.url_save = QPushButton("Save")
         
-        url_input_layout = QHBoxLayout()
-        url_input_layout.addWidget(url_input_label)
-        url_input_layout.addWidget(self.url_input)
-        # url_input_layout.addWidget(self.url_input_open)
-        
-        url_buttons_layout = QHBoxLayout()
-        for button in [self.url_load, self.url_append, self.url_save]:
-            url_buttons_layout.addWidget(button)
-        
-        url_container = VerticalContainer()
-        url_container.addLayout(url_input_layout)
-        url_container.addLayout(url_buttons_layout)
-        url_container.addWidget(self.url_area)
-        # for element in [url_input_layout, url_buttons_layout, self.url_area]:
+        self.url_area = QPlainTextEdit()
+
+        url_selection_layout = QHBoxLayout()
+        url_selection_layout.addWidget(self.url_select)
+        url_selection_layout.addWidget(self.url_input)
+        url_selection_layout.addWidget(self.url_save)
+
+        url_container_layout = QVBoxLayout()
+        url_container_layout.addLayout(url_selection_layout)
+        url_container_layout.addWidget(self.url_area)
+
+        url_input_group = QGroupBox("Urls")
+        url_input_group.setLayout(url_container_layout)
 
         # setup blacklist side
-        blacklist_input_label = QLabel("Blacklist File:")
+        self.blacklist_select = QComboBox()
         self.blacklist_input = QLineEdit()
-        # self.blacklist_input_open = FileOpenPushButton(hook_field=self.blacklist_input)
-        
-        self.blacklist_area = QPlainTextEdit()
-        self.blacklist_load = QPushButton("Load")
-        self.blacklist_append = QPushButton("Append")
         self.blacklist_save = QPushButton("Save")
         
-        blacklist_input_layout = QHBoxLayout()
-        blacklist_input_layout.addWidget(blacklist_input_label)
-        blacklist_input_layout.addWidget(self.blacklist_input)
-        # blacklist_input_layout.addWidget(self.blacklist_input_open)
+        self.blacklist_area = QPlainTextEdit()
         
-        blacklist_buttons_layout = QHBoxLayout()
-        for button in [self.blacklist_load, self.blacklist_append, self.blacklist_save]:
-            blacklist_buttons_layout.addWidget(button)
-        
-        blacklist_container = VerticalContainer()
-        blacklist_container.addLayout(blacklist_input_layout)
-        blacklist_container.addLayout(blacklist_buttons_layout)
-        blacklist_container.addWidget(self.blacklist_area)
-        # for element in [self.blacklist_input, blacklist_buttons_layout, self.blacklist_area]:
+        blacklist_selection_layout = QHBoxLayout()
+        blacklist_selection_layout.addWidget(self.blacklist_select)
+        blacklist_selection_layout.addWidget(self.blacklist_input)
+        blacklist_selection_layout.addWidget(self.blacklist_save)
+
+        blacklist_container_layout = QVBoxLayout()
+        blacklist_container_layout.addLayout(blacklist_selection_layout)
+        blacklist_container_layout.addWidget(self.blacklist_area)
+
+        blacklist_input_group = QGroupBox("Blacklist")
+        blacklist_input_group.setLayout(blacklist_container_layout)
 
         # put together
         url_blacklist_splitter = QSplitter()
         url_blacklist_splitter.setChildrenCollapsible(False)
-        url_blacklist_splitter.addWidget(url_container)
-        url_blacklist_splitter.addWidget(blacklist_container)
+        url_blacklist_splitter.addWidget(url_input_group)
+        url_blacklist_splitter.addWidget(blacklist_input_group)
         
         crawl_name_input_label = QLabel("Crawl name:")
         self.crawl_name_input = QLineEdit()

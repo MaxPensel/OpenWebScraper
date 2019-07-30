@@ -10,8 +10,9 @@ import json
 import traceback
 import subprocess
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox
+from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox, QComboBox
 
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader, Settings
@@ -40,6 +41,11 @@ class CrawlerController:
         
         # self._view.blacklist_save.setEnabled(False)
         # self._view.url_save.setEnabled(False)
+        self._view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
+        CrawlerController.saturate_combobox(self._view.url_select, filemanager.get_url_filenames())
+
+        self._view.blacklist_select.setInsertPolicy(QComboBox.InsertAlphabetically)
+        CrawlerController.saturate_combobox(self._view.blacklist_select, filemanager.get_blacklist_filenames())
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -48,16 +54,31 @@ class CrawlerController:
         Should not initialise default state, use init_elements() for that.
         """
 
-        self.setup_completion()
+        self._view.url_select.currentIndexChanged.connect(
+            self.load_file_to_editor(self._view.url_select,
+                                     filemanager.get_url_content,
+                                     self._view.url_area,
+                                     self._view.url_input))
+        self._view.url_save.clicked.connect(
+            self.build_save_file_connector(self._view.url_input,
+                                           self._view.url_select,
+                                           self._view.url_area,
+                                           filemanager.save_url_content,
+                                           filemanager.get_url_filenames))
 
-        self._view.url_load.clicked.connect(self.load_url_file)
-        self._view.url_save.clicked.connect(self.save_url_file)
-
-        self._view.blacklist_load.clicked.connect(self.load_blacklist_file)
-        self._view.blacklist_save.clicked.connect(self.save_blacklist_file)
+        self._view.blacklist_select.currentIndexChanged.connect(
+            self.load_file_to_editor(self._view.blacklist_select,
+                                     filemanager.get_blacklist_content,
+                                     self._view.blacklist_area,
+                                     self._view.blacklist_input))
+        self._view.blacklist_save.clicked.connect(
+            self.build_save_file_connector(self._view.blacklist_input,
+                                           self._view.blacklist_select,
+                                           self._view.blacklist_area,
+                                           filemanager.save_blacklist_content,
+                                           filemanager.get_blacklist_filenames))
 
         self._view.crawl_button.clicked.connect(self.start_crawl)
-        # self._view.blacklist_load.clicked.connect(self.load_blacklist_file)  # load_url_file must be made more generic
 
     def setup_completion(self):
         url_model = QStringListModel()
@@ -74,36 +95,43 @@ class CrawlerController:
         blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._view.blacklist_input.setCompleter(blacklist_completer)
 
-    def reload(self):
-        self.setup_completion()
+    @staticmethod
+    def saturate_combobox(combobox: QComboBox, items, include_empty=True):
+        for i in range(combobox.count()):
+            combobox.removeItem(0)
+        if include_empty:
+            combobox.addItem("")
+        combobox.addItems(items)
         
-    def load_url_file(self):
-        filename = self._view.url_input.displayText()
+    @staticmethod
+    def load_file_to_editor(combobox, content_loader, text_area, input_field):
+        def combobox_connector(index):
+            if index:
+                filename = combobox.itemText(index)
 
-        content = filemanager.get_url_content(filename)
-        self._view.url_area.setPlainText(content)
+                content = content_loader(filename)
+                text_area.setPlainText(content)
+                input_field.setText(filename)
+        return combobox_connector
 
-    def save_url_file(self):
-        filename = self._view.url_input.displayText()
+    @staticmethod
+    def build_save_file_connector(input_field, combobox, text_area, content_saver, content_loader):
+        def save_button_connector():
+            filename = input_field.displayText()
 
-        content = self._view.url_area.toPlainText()
-        filemanager.save_url_content(content, filename)
+            if not filename:
+                print("Kill the save, nothing is set.")
+                return
 
-        self.reload()
-
-    def load_blacklist_file(self):
-        filename = self._view.blacklist_input.displayText()
-
-        content = filemanager.get_blacklist_content(filename)
-        self._view.blacklist_area.setPlainText(content)
-
-    def save_blacklist_file(self):
-        filename = self._view.blacklist_input.displayText()
-
-        content = self._view.blacklist_area.toPlainText()
-        filemanager.save_blacklist_content(content, filename)
-
-        self.reload()
+            print("Filename given, save to that!")
+            idx = combobox.findText(filename, flags=Qt.MatchExactly)
+            if idx >= 0 and idx is not combobox.currentIndex():
+                print("Attention you would be overwriting another existing urls file. Continue?")
+            content = text_area.toPlainText()
+            content_saver(content, filename)
+            CrawlerController.saturate_combobox(combobox, content_loader())
+            combobox.setCurrentIndex(combobox.findText(filename, flags=Qt.MatchExactly))
+        return save_button_connector
 
     def start_crawl(self):
         crawl_name = self._view.crawl_name_input.displayText()
