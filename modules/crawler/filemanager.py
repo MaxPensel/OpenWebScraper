@@ -1,4 +1,11 @@
 """
+The filemanager is the interface between a module and the operating system,
+at least as far as filesystem interactions are concerned.
+A filemanager is module-specific because it handles pathing and the directory structure.
+Modules may also rely on the filemanager of other modules.
+For some modules such a dependency makes sense and is semantically required, but be
+aware that an overuse of this dependency reduces the separability of modules.
+
 Created on 20.07.2019
 
 @author: Maximilian Pensel
@@ -87,8 +94,8 @@ def save_blacklist_content(content, filename):
     __save_file_content(content, filepath)
 
 
-def save_crawl_info(crawl, info_df: pandas.DataFrame):
-    info_df.to_excel(os.path.join(get_crawl_path(crawl), "info.xls"), index=False)
+def save_dataframe(crawl: str, name: str, df: pandas.DataFrame):
+    df.to_excel(os.path.join(get_crawl_path(crawl), name + ".xls"))
 
 
 def get_running_crawls():

@@ -30,6 +30,7 @@ from urllib.parse import urlparse
 from scrapy.settings import Settings
 from langdetect.lang_detect_exception import LangDetectException
 from langdetect import detect
+from langdetect import DetectorFactory
 import textract
 from textract.exceptions import CommandLineError
 
@@ -104,6 +105,7 @@ def create_spider(settings, start_url, crawler_name):
             # Rule(LinkExtractor(deny=r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")),
             Rule(LxmlLinkExtractor(  # deny=(r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?"),
                                      # deny=blacklistloader.load_blacklist(),  # Blacklist feature not yet implemented
+                                    allow=start_url+".*",  # crawl only links behind the given start-url
                                     deny_extensions=denied_extensions), callback='parse_item', follow=True)
         ]
 
@@ -125,6 +127,9 @@ def create_spider(settings, start_url, crawler_name):
             self.logger.logger.addHandler(log_ch)
             self.logger.debug("[__init__] - Logger setup finished.")
 
+            self.langdetect_stats = pandas.DataFrame(columns=["Paragraphs"])
+            self.langdetect_stats.index.name = "Language"
+
         def parse_item(self, response):
             self.logger.info("[parse_item] - Processing {0}".format(response.url))
 
@@ -142,10 +147,10 @@ def create_spider(settings, start_url, crawler_name):
         def handle_html(self, response):
             items = []
 
-            scraping_tags = ["p", "td"]
+            scraping_paths = ["//p", "//td"]
 
-            for tag in scraping_tags:
-                paragraphs = response.xpath("//"+tag)
+            for xp in scraping_paths:
+                paragraphs = response.xpath(xp)
                 for par in paragraphs:
                     par_content = "".join(par.xpath(".//text()").extract())
                     items.extend(self.process_paragraph(response, par_content))
@@ -200,7 +205,11 @@ def create_spider(settings, start_url, crawler_name):
                     lang = detect(par_content)
                     if lang in ACCEPTED_LANG:
                         items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
+                    if not self.langdetect_stats.index.contains(lang):
+                        self.langdetect_stats.at[lang, "Paragraphs"] = 0
+                    self.langdetect_stats.at[lang, "Paragraphs"] += 1
                 except LangDetectException as exc:
+                    pass
                     self.logger.error("[process_paragraph] - Error: "
                                       "{0} on langdetect input '{1}'. Being careful and storing the value anyway!"
                                       .format(exc, par_content))
@@ -208,6 +217,10 @@ def create_spider(settings, start_url, crawler_name):
                     # Of course repeating code is ugly, but language detection works the same with pdf and html,
                     # so being outsourced in the future anyway.
                     items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
+
+                    if not self.langdetect_stats.index.contains("Not enough features"):
+                        self.langdetect_stats.at["Not enough features", "Paragraphs"] = 0
+                    self.langdetect_stats.at["Not enough features", "Paragraphs"] += 1
 
             return items
 
@@ -248,6 +261,7 @@ class GenericCrawlPipeline(object):
     def close_spider(self, spider):
         for domain in spider.allowed_domains:
             filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
+            filemanager.save_dataframe(spider.crawl_settings["name"], "lang-" + spider.name, spider.langdetect_stats)
 
 
 class GenericScrapySettings(Settings):
@@ -274,6 +288,9 @@ if SETTINGS_PATH is None:
 
 
 if __name__ == '__main__':
+    # setup consistent language detection
+    DetectorFactory.seed = 0
+
     crawl_settings = load_settings(SETTINGS_PATH)
     # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
     WorkspaceManager(crawl_settings["workspace"])
@@ -300,19 +317,17 @@ if __name__ == '__main__':
     # every spider finished, finalize crawl
     crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings["name"])
     crawl_dir = filemanager.get_crawl_path(crawl_settings["name"])
-    info_df = pandas.DataFrame(columns=["url", "paragraphs"])
+    stats_df = pandas.DataFrame(columns=["paragraphs"])
+    stats_df.index.name = "url"
     one_incomplete = False
     for csv in os.listdir(crawl_raw_dir):
         # As soon as there still is an incomplete file set one_incomplete = True
         one_incomplete = one_incomplete or filemanager.incomplete_flag in csv
         fullpath = os.path.join(crawl_raw_dir, csv)
         df = pandas.read_csv(fullpath, sep=None, engine="python")
-        row = dict()
-        row["url"] = csv
-        row["paragraphs"] = df.count()["url"]
-        info_df = info_df.append(row, ignore_index=True)
+        stats_df.at[csv.replace(".csv", ""), "paragraphs"] = df.count()["url"]
 
-    filemanager.save_crawl_info(crawl_settings["name"], info_df)
+    filemanager.save_dataframe(crawl_settings["name"], "stats", stats_df)
 
-    if not one_incomplete:
+    if not one_incomplete and not DEBUG:
         filemanager.finalize_crawl(crawl_settings["name"])
