@@ -5,13 +5,15 @@ Created on 24.05.2019
 """
 
 import importlib
+import sys
 import os
 import json
+
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QWidget, QToolBar, QPushButton, QSizePolicy, \
     QTableWidget, QTableWidgetItem, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
-from PyQt5 import QtWidgets
 
 from core.Workspace import WorkspaceManager
 
@@ -98,6 +100,7 @@ class MainWidget(QTabWidget):
         parent.setCentralWidget(self)
         
         parent.setStyleSheet(open("style.css").read())
+        # parent.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     
     def register_modules(self, modules: {}):
         for module in modules:
@@ -232,12 +235,10 @@ class Settings:
         if not self.venv:  # has no modules specified
             self.venv = os.path.join(".", "venv")
         if not self.python:  # has no modules specified
-            self.python = "C:\\ProgramData\\Anaconda3\\python.exe"
-
+            self.python = sys.executable
 
 
 if __name__ == "__main__":
-    import sys
     app = QApplication(sys.argv)
 
     window = UIWindow(Settings())

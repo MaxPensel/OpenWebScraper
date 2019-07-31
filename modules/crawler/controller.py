@@ -151,12 +151,8 @@ class CrawlerController:
             return
         
         print("Starting new crawl with settings in file {0}".format(settings_path))
-        # the following needs to be made configurable!!!
-        #python_exe = os.path.join(os.getcwd(), "WinPython-Zero", "python.exe")
-        #python_exe = os.path.join(Settings().venv, "Scripts", "python.exe")
-        #python_exe = os.path.abspath(python_exe)
         python_exe = os.path.abspath(Settings().python)
-        print(python_exe)
+        print("Running scrapy_wrapper.py with {0}".format(python_exe))
         try:
             if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
                 p = subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
