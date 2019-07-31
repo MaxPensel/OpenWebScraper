@@ -4,7 +4,7 @@ Created on 27.05.2019
 @author: Maximilian Pensel
 """
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
 
 
@@ -63,3 +63,30 @@ class FileOpenPushButton(QPushButton):
     def fill_field(self, path):
         """ Fill the hook_field (if given and of type QLineEdit) with the selected file/path """
         self._hook_field.setText(path)
+
+
+class SimpleMessageBox(QMessageBox):
+
+    def __init__(self, title, text, icon):
+        super().__init__()
+        self.setIcon(icon)
+        self.setText(title)
+        self.setInformativeText(text)
+        self.setWindowTitle(title)
+
+
+class SimpleYesNoMessage(SimpleMessageBox):
+
+    def __init__(self, title, text):
+        super().__init__(title, text, QMessageBox.Question)
+        self.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+    def is_confirmed(self) -> bool:
+        return self.exec_() is QMessageBox.Ok
+
+
+class SimpleErrorInfo(SimpleMessageBox):
+
+    def __init__(self, title, text):
+        super().__init__(title, text, QMessageBox.Critical)
+        self.setStandardButtons(QMessageBox.Ok)
