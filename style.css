@@ -10,10 +10,6 @@ QAbstractButton {
 	font-size: large;
 }
 
-QAbstractButton:hover {
-	cursor: pointer;
-}
-
 QPlainTextEdit, QLineEdit {
 	font-family: "Lucida Console", Monaco, monospace;
 }
