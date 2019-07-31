@@ -105,6 +105,16 @@ def get_running_crawls():
     return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_path))
 
 
+def get_path_to_run_spec(crawl_name):
+    global running_crawl_settings_path
+    wsm = WorkspaceManager()
+    path = os.path.join(wsm.get_workspace(), running_crawl_settings_path, crawl_name + ".json")
+    if os.path.exists(path):
+        return path
+    else:
+        return None
+
+
 def save_crawl_settings(name, settings):
     if not name:
         print("Error: please name the crawl before starting it.", file=sys.stderr)
@@ -115,10 +125,10 @@ def save_crawl_settings(name, settings):
         os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path), exist_ok=True)
         filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path, name + ".json")
 
-        __save_file_content(json.dumps(settings), filepath)
+        __save_file_content(json.dumps(settings, sort_keys=True, indent=4, separators=(',', ': ')), filepath)
     except Exception as exc:
         print(traceback.format_exc())
-        print(exc)
+        print("[save_crawl_settings] - {0}".format(exc))
         return False
 
     return filepath
@@ -192,10 +202,10 @@ def __get_filenames_of_type(ext, path, directories=False):
                     or (not directories and filename.endswith(ext)):
                 filenames.append(os.path.splitext(filename)[0])
     except IOError as err:
-        print(err, file=sys.stderr)
+        print("[__get_filenames_of_type] - {0}".format(err), file=sys.stderr)
     except Exception as exc:
         print(traceback.format_exc())
-        print(exc, file=sys.stderr)
+        print("[__get_filenames_of_type] - {0}".format(exc), file=sys.stderr)
 
     return filenames
 
@@ -206,10 +216,10 @@ def __get_file_content(path):
         with open(path) as in_file:
             content = in_file.read()
     except IOError as err:
-        print(err, file=sys.stderr)
+        print("[__get_file_content] - {0}".format(err), file=sys.stderr)
     except Exception as exc:
         print(traceback.format_exc())
-        print(exc, file=sys.stderr)
+        print("[__get_file_content] - {0}".format(exc), file=sys.stderr)
 
     return content
 

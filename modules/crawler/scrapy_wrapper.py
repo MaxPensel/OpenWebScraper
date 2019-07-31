@@ -49,11 +49,6 @@ if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
     DEBUG = True
 
 
-def parse_urls(url_filecontent: str):
-    # preferably check every entry for a valid url
-    return list(set(url_filecontent.splitlines()))
-
-
 def load_settings(settings_path):
     try:
         settings_file = open(settings_path, "r")
@@ -302,7 +297,7 @@ if __name__ == '__main__':
     scrapy_settings = GenericScrapySettings()
 
     process = CrawlerProcess(settings=scrapy_settings)
-    start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
+    start_urls = list(set(crawl_settings["urls"]))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
     domain_name = len(start_urls) == len(set(allowed_domains))
     for url in start_urls:

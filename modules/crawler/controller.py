@@ -10,35 +10,37 @@ import json
 import traceback
 import subprocess
 
+import validators
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox, QComboBox
 
+from core.QtExtensions import SimpleYesNoMessage, SimpleErrorInfo, SimpleMessageBox
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader, Settings
 from modules.crawler import filemanager
 
 
 class CrawlerController:
-    
+
     MOD_PATH = os.path.join(ModLoader.MOD_DIR, "crawler")
     RUNNING_DIR = "running"
     RUNNING_PATH = os.path.join(MOD_PATH, RUNNING_DIR)
 
     def __init__(self, view):
         self._view = view
-        
+
         self.init_elements()
-        
+
         self.setup_behaviour()
-    
+
     def init_elements(self):
         """ Sets up the initial state of the elements
 
         This could determine the enabled state of a button, default values for text areas, etc.
         Should not further adjust layouts or labels!
         """
-        
+
         # self._view.blacklist_save.setEnabled(False)
         # self._view.url_save.setEnabled(False)
         self._view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
@@ -102,7 +104,7 @@ class CrawlerController:
         if include_empty:
             combobox.addItem("")
         combobox.addItems(items)
-        
+
     @staticmethod
     def load_file_to_editor(combobox, content_loader, text_area, input_field):
         def combobox_connector(index):
@@ -120,13 +122,19 @@ class CrawlerController:
             filename = input_field.displayText()
 
             if not filename:
-                print("Kill the save, nothing is set.")
+                msg = SimpleErrorInfo("Error", "You have to specify a name to be associated with your data.")
+                msg.exec()
                 return
 
-            print("Filename given, save to that!")
             idx = combobox.findText(filename, flags=Qt.MatchExactly)
             if idx >= 0 and idx is not combobox.currentIndex():
-                print("Attention you would be overwriting another existing urls file. Continue?")
+                msg = SimpleYesNoMessage("Continue?",
+                                         "There is already data associated with '{0}'. Continue and overwrite?"
+                                         .format(filename))
+                if not msg.is_confirmed():
+                    return None
+
+            print("Saving data as {0}".format(filename))
             content = text_area.toPlainText()
             content_saver(content, filename)
             CrawlerController.saturate_combobox(combobox, content_loader())
@@ -135,21 +143,46 @@ class CrawlerController:
 
     def start_crawl(self):
         crawl_name = self._view.crawl_name_input.displayText()
-        if crawl_name in filemanager.get_running_crawls():
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Error")
-            msg.setInformativeText("There is still an unfinished crawl by the name '{0}'. Pick a different name!"
-                                   .format(crawl_name))
-            msg.setWindowTitle("Error")
-            msg.exec_()
+        if not crawl_name:
+            msg = SimpleErrorInfo("Error", "Your crawl must have a name.")
+            msg.exec()
             return
 
-        settings_path = self.setup_crawl()
+        if crawl_name in filemanager.get_running_crawls():
+            msg = SimpleMessageBox("Warning",
+                                   "There is still an unfinished crawl by the name '{0}'. It is recommended to use a "
+                                   "different name. If you are sure that this crawl is not running anymore you can "
+                                   "also restart it with its original settings. "
+                                   .format(crawl_name),
+                                   QMessageBox.Warning)
+            restart = msg.addButton("Restart Crawl", QMessageBox.ActionRole)
+            cancel = msg.addButton("Cancel", QMessageBox.RejectRole)
+            msg.exec()
+            pressed = msg.clickedButton()
+            if pressed == restart:
+                settings_path = self.setup_crawl(restart_crawl=True)
+            else:
+                return
+        else:
+            lines, invalid, urls = self.detect_valid_urls()
+            if lines == invalid or len(urls) == 0:
+                msg = SimpleErrorInfo("Error", "No valid urls given.")
+                msg.exec()
+                return
+
+            if invalid:
+                msg = SimpleYesNoMessage("Warning", "{0} out of {1} non-empty lines contain invalid urls. "
+                                                    "Continue crawling only the valid urls?".format(invalid, lines))
+                if not msg.is_confirmed():
+                    return
+
+            settings_path = self.setup_crawl(urls=urls)
+
         if not settings_path:
-            print("Crawl setup encountered an error. Not starting crawl.", file=sys.stderr)
+            msg = SimpleErrorInfo("Crawl setup encountered an error. Not starting crawl.")
+            msg.exec()
             return
-        
+
         print("Starting new crawl with settings in file {0}".format(settings_path))
         python_exe = os.path.abspath(Settings().python)
         print("Running scrapy_wrapper.py with {0}".format(python_exe))
@@ -172,26 +205,37 @@ class CrawlerController:
         except Exception as exc:
             print(traceback.format_exc())
             print(exc)
-    
-    def setup_crawl(self):
-        crawl_name = self._view.crawl_name_input.displayText()
-        if crawl_name in filemanager.get_crawlnames():
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Question)
-            msg.setText("Continue?")
-            msg.setInformativeText("There is already data for a crawl by the name '{0}'. Continue anyway?"
-                                   .format(crawl_name))
-            msg.setWindowTitle("Continue?")
-            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-            answer = msg.exec_()
-            if answer == QMessageBox.Cancel:
-                return None
 
-        settings = {"workspace": WorkspaceManager().get_workspace(),
-                    "name": self._view.crawl_name_input.displayText(),
-                    "urls_file": self._view.url_input.displayText(),
-                    "blacklist_file": self._view.blacklist_input.displayText(),
-                    "finished_urls": []
-                    }
+    def setup_crawl(self, urls=[], restart_crawl=False):
+        if not restart_crawl:
+            crawl_name = self._view.crawl_name_input.displayText()
+            if crawl_name in filemanager.get_crawlnames():
+                msg = SimpleYesNoMessage("Continue?",
+                                         "There is already data for a crawl by the name '{0}'. Continue anyway?"
+                                         .format(crawl_name))
+                if not msg.is_confirmed():
+                    return None
 
-        return filemanager.save_crawl_settings(self._view.crawl_name_input.displayText(), settings)
+            settings = {"workspace": WorkspaceManager().get_workspace(),
+                        "name": self._view.crawl_name_input.displayText(),
+                        "urls": urls,
+                        "blacklist": []
+                        }
+
+            return filemanager.save_crawl_settings(self._view.crawl_name_input.displayText(), settings)
+        else:
+            return filemanager.get_path_to_run_spec(self._view.crawl_name_input.displayText())
+
+    def detect_valid_urls(self):
+        text = self._view.url_area.toPlainText()
+        lines = 0
+        invalid = 0
+        urls = list()
+        for line in text.splitlines():
+            if line:
+                lines += 1
+                if not validators.url(line):
+                    invalid += 1
+                else:
+                    urls.append(line)
+        return lines, invalid, urls
