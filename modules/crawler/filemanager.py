@@ -198,8 +198,9 @@ def __get_filenames_of_type(ext, path, directories=False):
 
     try:
         for filename in os.listdir(path):
-            if (directories and os.path.isdir(os.path.join(path, filename)))\
-                    or (not directories and filename.endswith(ext)):
+            if directories and os.path.isdir(os.path.join(path, filename)):
+                filenames.append(filename)
+            elif not directories and filename.endswith(ext):
                 filenames.append(os.path.splitext(filename)[0])
     except IOError as err:
         print("[__get_filenames_of_type] - {0}".format(err), file=sys.stderr)

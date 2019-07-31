@@ -312,15 +312,27 @@ if __name__ == '__main__':
     # every spider finished, finalize crawl
     crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings["name"])
     crawl_dir = filemanager.get_crawl_path(crawl_settings["name"])
-    stats_df = pandas.DataFrame(columns=["paragraphs"])
+    stats_df = pandas.DataFrame(columns=["total paragraphs", "unique paragraphs", "unique urls"])
     stats_df.index.name = "url"
     one_incomplete = False
     for csv in os.listdir(crawl_raw_dir):
         # As soon as there still is an incomplete file set one_incomplete = True
         one_incomplete = one_incomplete or filemanager.incomplete_flag in csv
         fullpath = os.path.join(crawl_raw_dir, csv)
-        df = pandas.read_csv(fullpath, sep=None, engine="python")
-        stats_df.at[csv.replace(".csv", ""), "paragraphs"] = df.count()["url"]
+        try:
+            df = pandas.read_csv(fullpath, sep=None, engine="python")
+            col = csv.replace(".csv", "")
+            stats_df.at[col, "total paragraphs"] = df.count()["url"]
+            if df.empty:
+                stats_df.at[col, "unique paragraphs"] = 0
+                stats_df.at[col, "unique urls"] = 0
+            else:
+                unique = df.nunique()
+                stats_df.at[col, "unique paragraphs"] = unique["content"]
+                stats_df.at[col, "unique urls"] = unique["url"]
+        except Exception as exc:
+            stats_df.at[csv.replace(".csv", ""), "total paragraphs"] = "Could not process"
+            print("Error while generating analytics: {0}".format(exc))
 
     filemanager.save_dataframe(crawl_settings["name"], "stats", stats_df)
 
