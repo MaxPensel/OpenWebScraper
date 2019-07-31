@@ -4,7 +4,7 @@ Created on 27.05.2019
 @author: Maximilian Pensel
 """
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox, QAbstractButton
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
 
 
@@ -82,7 +82,7 @@ class SimpleYesNoMessage(SimpleMessageBox):
         self.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
 
     def is_confirmed(self) -> bool:
-        return self.exec_() is QMessageBox.Ok
+        return self.exec_() == QMessageBox.Ok
 
 
 class SimpleErrorInfo(SimpleMessageBox):
