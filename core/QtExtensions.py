@@ -67,18 +67,18 @@ class FileOpenPushButton(QPushButton):
 
 class SimpleMessageBox(QMessageBox):
 
-    def __init__(self, title, text, icon):
+    def __init__(self, title, text, details="", icon=None):
         super().__init__()
         self.setIcon(icon)
         self.setText(title)
-        self.setInformativeText(text)
+        self.setInformativeText(details)
         self.setWindowTitle(title)
 
 
 class SimpleYesNoMessage(SimpleMessageBox):
 
-    def __init__(self, title, text):
-        super().__init__(title, text, QMessageBox.Question)
+    def __init__(self, title, text, details=""):
+        super().__init__(title, text, details, QMessageBox.Question)
         self.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
 
     def is_confirmed(self) -> bool:
@@ -87,6 +87,6 @@ class SimpleYesNoMessage(SimpleMessageBox):
 
 class SimpleErrorInfo(SimpleMessageBox):
 
-    def __init__(self, title, text):
-        super().__init__(title, text, QMessageBox.Critical)
+    def __init__(self, title, text, details=""):
+        super().__init__(title, text, details, QMessageBox.Critical)
         self.setStandardButtons(QMessageBox.Ok)
