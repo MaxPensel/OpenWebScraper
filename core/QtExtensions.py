@@ -70,7 +70,7 @@ class SimpleMessageBox(QMessageBox):
     def __init__(self, title, text, details="", icon=None):
         super().__init__()
         self.setIcon(icon)
-        self.setText(title)
+        self.setText(text)
         self.setInformativeText(details)
         self.setWindowTitle(title)
 
