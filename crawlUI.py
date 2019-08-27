@@ -7,7 +7,7 @@ Created on 24.05.2019
 import importlib
 import os
 import json
-from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QWidget, QToolBar, QPushButton, QSizePolicy, \
+from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QSizePolicy, \
     QTableWidget, QTableWidgetItem, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
@@ -15,7 +15,7 @@ from PyQt5 import QtWidgets
 
 from core.Workspace import WorkspaceManager
 
-VERSION = "1.2.1"
+VERSION = "0.3.0 <alpha>"
 
 
 class UIWindow(QMainWindow):
@@ -110,6 +110,7 @@ class MainWidget(QTabWidget):
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
 
+
 class InfoWindow(QMainWindow):
     
     def __init__(self, parent=None):
@@ -121,12 +122,12 @@ class InfoWindow(QMainWindow):
         
         versions = {}
         for mod_dir in os.listdir(ModLoader.MOD_DIR):
-            if os.path.exists(os.path.join(ModLoader.MOD_DIR, mod_dir, "view.py")):
+            if os.path.exists(os.path.join(ModLoader.MOD_DIR, mod_dir, "__init__.py")):
                 try:
-                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + mod_dir + ".view",
+                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + mod_dir,
                                                   ModLoader.MOD_DIR + "." + mod_dir)
                     if hasattr(mod, "VERSION"):
-                        versions[mod_dir] = "v{0}".format(mod.VERSION)
+                        versions[mod_dir] = "{0}".format(mod.VERSION)
                     else:
                         versions[mod_dir] = "- not supported -"
                 except Exception as er:
@@ -174,7 +175,7 @@ class ModLoader:
 
         for modname in mods:
             try: 
-                mod = importlib.import_module(ModLoader.MOD_DIR + "." + modname + ".view",
+                mod = importlib.import_module(ModLoader.MOD_DIR + "." + modname,
                                               ModLoader.MOD_DIR + "." + modname)
                 
                 if not hasattr(mod, "TITLE"):
@@ -183,7 +184,7 @@ class ModLoader:
                 if hasattr(mod, "MAIN_WIDGET"):
                     self.modules.append(mod)
                 else:
-                    raise AttributeError("view.py in {0} is missing MAIN_WIDGET attribute".format(modname))
+                    raise AttributeError("__init__.py in {0} is missing MAIN_WIDGET attribute".format(modname))
                 
             except Exception as ex:
                 print("{0}: {1}".format(type(ex).__name__, ex))
