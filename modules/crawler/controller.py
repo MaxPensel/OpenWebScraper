@@ -184,11 +184,12 @@ class CrawlerController:
                     msg.exec()
                     return
 
-                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>",
-                                                    "{2}"
+                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>"
+                                                    .format(len(invalid), lines),
+                                                    "{0}"
                                                     "<b>Do you wish to start the crawl with the remaining "
-                                                    "{3} valid urls?</b>"
-                                         .format(len(invalid), lines, invalid_html, lines-len(invalid)))
+                                                    "{1} valid urls?</b>"
+                                                    .format(invalid_html, lines-len(invalid)))
 
                 if not msg.is_confirmed():
                     return
