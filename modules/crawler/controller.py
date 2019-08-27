@@ -180,14 +180,14 @@ class CrawlerController:
                     invalid_html += "<li><a href='{0}'>{0}</a></li>".format(inv)
                 invalid_html += "</ul>"
                 if lines == len(invalid) or len(urls) == 0:
-                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b><br />" + invalid_html)
+                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b>", invalid_html)
                     msg.exec()
                     return
 
-                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid "
-                                                    "urls.</b> <br /> {2} "
-                                                    "<b>Do you wish to start the crawl with the remaining"
-                                                    " {3} valid urls?</b>"
+                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>",
+                                                    "{2}"
+                                                    "<b>Do you wish to start the crawl with the remaining "
+                                                    "{3} valid urls?</b>"
                                          .format(len(invalid), lines, invalid_html, lines-len(invalid)))
 
                 if not msg.is_confirmed():
@@ -196,7 +196,7 @@ class CrawlerController:
             settings_path = self.setup_crawl(urls=urls)
 
         if not settings_path:
-            msg = SimpleErrorInfo("Crawl setup encountered an error. Not starting crawl.")
+            msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
             msg.exec()
             return
 
