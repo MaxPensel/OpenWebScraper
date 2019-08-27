@@ -169,14 +169,27 @@ class CrawlerController:
                 return
         else:
             lines, invalid, urls = self.detect_valid_urls()
-            if lines == invalid or len(urls) == 0:
-                msg = SimpleErrorInfo("Error", "No valid urls given.")
-                msg.exec()
-                return
-
             if invalid:
-                msg = SimpleYesNoMessage("Warning", "{0} out of {1} non-empty lines contain invalid urls. "
-                                                    "Continue crawling only the valid urls?".format(invalid, lines))
+                invalid_html = "The following is a list of lines that have not been recognized as a valid url " \
+                               "by the url validator. This could be because they syntactically do not form a valid " \
+                               "url-string or they are not responding to an http-request or the http-request is " \
+                               "being redirected to another url (other reasons might be possible).<br />" \
+                               "Consider opening the following urls in your browser to verify the problems yourself." \
+                               "<ul>"
+                for inv in invalid:
+                    invalid_html += "<li><a href='{0}'>{0}</a></li>".format(inv)
+                invalid_html += "</ul>"
+                if lines == len(invalid) or len(urls) == 0:
+                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b><br />" + invalid_html)
+                    msg.exec()
+                    return
+
+                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid "
+                                                    "urls.</b> <br /> {2} "
+                                                    "<b>Do you wish to start the crawl with the remaining"
+                                                    " {3} valid urls?</b>"
+                                         .format(len(invalid), lines, invalid_html, lines-len(invalid)))
+
                 if not msg.is_confirmed():
                     return
 
@@ -232,13 +245,14 @@ class CrawlerController:
     def detect_valid_urls(self):
         text = self._view.url_area.toPlainText()
         lines = 0
-        invalid = 0
+        invalid = list()
         urls = list()
         for line in text.splitlines():
             if line:
                 lines += 1
-                if not validators.url(line):
-                    invalid += 1
+                validator_result = validators.url(line)
+                if not validator_result:
+                    invalid.append(line)
                 else:
                     urls.append(line)
         return lines, invalid, urls
