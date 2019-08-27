@@ -98,6 +98,18 @@ def save_dataframe(crawl: str, name: str, df: pandas.DataFrame):
     df.to_excel(os.path.join(get_crawl_path(crawl), name + ".xls"))
 
 
+def extend_dataframe(crawl: str, name: str, df: pandas.DataFrame):
+    df_file = os.path.join(get_crawl_path(crawl), name + ".xls")
+    if os.path.exists(df_file):
+        base_df = pandas.read_excel(df_file)
+        columns = base_df.columns.union(df.columns)
+        base_df = base_df.reindex(columns=columns, fill_value=0)
+        df = df.reindex(columns=columns, fill_value=0)
+        df = base_df.append(df)
+
+    save_dataframe(crawl, name, df)
+
+
 def get_running_crawls():
     global running_crawl_settings_path
     wsm = WorkspaceManager()

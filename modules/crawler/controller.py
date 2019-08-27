@@ -21,6 +21,10 @@ from crawlUI import ModLoader, Settings
 from modules.crawler import filemanager
 
 
+class WindowsCreationFlags:
+    DETACHED_PROCESS = 0x00000008
+
+
 class CrawlerController:
 
     MOD_PATH = os.path.join(ModLoader.MOD_DIR, "crawler")
@@ -193,8 +197,7 @@ class CrawlerController:
                                      shell=True,
                                      start_new_session=True,
                                      cwd="modules/crawler/",
-                                     creationflags=subprocess.DETACHED_PROCESS,
-                                     close_fds=True)
+                                     creationflags=WindowsCreationFlags.DETACHED_PROCESS)
             else:
                 subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
                                  stdout=sys.stdout,

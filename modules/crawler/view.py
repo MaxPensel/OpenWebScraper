@@ -18,7 +18,9 @@ class CrawlerWidget(VerticalContainer):
         
         # setup url side
         self.url_select = QComboBox()
+        self.url_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.url_input = QLineEdit()
+        self.url_input.setMinimumWidth(150)
         self.url_save = QPushButton("Save")
         
         self.url_area = QPlainTextEdit()
@@ -37,7 +39,9 @@ class CrawlerWidget(VerticalContainer):
 
         # setup blacklist side
         self.blacklist_select = QComboBox()
+        self.blacklist_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.blacklist_input = QLineEdit()
+        self.blacklist_input.setMinimumWidth(150)
         self.blacklist_save = QPushButton("Save")
         
         self.blacklist_area = QPlainTextEdit()

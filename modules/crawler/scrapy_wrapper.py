@@ -38,6 +38,9 @@ from core.Workspace import WorkspaceManager
 from modules.crawler import filemanager
 
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
+LANGSTATS_FILENAME = "languages"
+LANGSTATS = pandas.DataFrame(columns=ACCEPTED_LANG)
+LANGSTATS.index.name = "url"
 
 if len(sys.argv) >= 2:
     SETTINGS_PATH = sys.argv[1]
@@ -122,8 +125,9 @@ def create_spider(settings, start_url, crawler_name):
             self.logger.logger.addHandler(log_ch)
             self.logger.debug("[__init__] - Logger setup finished.")
 
-            self.langdetect_stats = pandas.DataFrame(columns=["Paragraphs"])
-            self.langdetect_stats.index.name = "Language"
+            for lang in ACCEPTED_LANG:
+                LANGSTATS.at[start_url, lang] = 0
+
 
         def parse_item(self, response):
             self.logger.info("[parse_item] - Processing {0}".format(response.url))
@@ -200,9 +204,7 @@ def create_spider(settings, start_url, crawler_name):
                     lang = detect(par_content)
                     if lang in ACCEPTED_LANG:
                         items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
-                    if not self.langdetect_stats.index.contains(lang):
-                        self.langdetect_stats.at[lang, "Paragraphs"] = 0
-                    self.langdetect_stats.at[lang, "Paragraphs"] += 1
+                    self.register_paragraph_language(lang)
                 except LangDetectException as exc:
                     pass
                     self.logger.error("[process_paragraph] - Error: "
@@ -212,12 +214,14 @@ def create_spider(settings, start_url, crawler_name):
                     # Of course repeating code is ugly, but language detection works the same with pdf and html,
                     # so being outsourced in the future anyway.
                     items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
-
-                    if not self.langdetect_stats.index.contains("Not enough features"):
-                        self.langdetect_stats.at["Not enough features", "Paragraphs"] = 0
-                    self.langdetect_stats.at["Not enough features", "Paragraphs"] += 1
+                    self.register_paragraph_language("Not enough features")
 
             return items
+
+        def register_paragraph_language(self, lang):
+            if lang not in LANGSTATS.columns:
+                LANGSTATS.insert(len(LANGSTATS.columns), lang, 0, True)
+            LANGSTATS.at[start_url, lang] += 1
 
         @staticmethod
         def make_scrapy_item(url, content, depth):
@@ -254,9 +258,7 @@ class GenericCrawlPipeline(object):
             filemanager.create_csv(spider.crawl_settings["name"], spider.name, True)
 
     def close_spider(self, spider):
-        for domain in spider.allowed_domains:
-            filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
-            filemanager.save_dataframe(spider.crawl_settings["name"], "lang-" + spider.name, spider.langdetect_stats)
+        filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
 
 
 class GenericScrapySettings(Settings):
@@ -270,14 +272,15 @@ class GenericScrapySettings(Settings):
             "DEPTH_PRIORITY": 1,
             "SCHEDULER_DISK_QUEUE": 'scrapy.squeues.PickleFifoDiskQueue',
             "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue',
-            "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log")
+            "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"),
+            "ROBOTSTXT_OBEY": True
             })
 
 
 if SETTINGS_PATH is None:
-    print("Error: no specification directory given. Call scrapy_wrapper.py as follows:\n" +
-          "  python scrapy_wrapper.py <spec_dir> [DEBUG]\n" +
-          "  <spec_dir> should contain a urls.txt and settings.json",
+    print("Error: no crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
+          "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
+          "  <spec_file> should be a json that contains start urls, blacklist, workspace directory, etc.",
           file=sys.stderr)
     exit()
 
@@ -299,10 +302,8 @@ if __name__ == '__main__':
     process = CrawlerProcess(settings=scrapy_settings)
     start_urls = list(set(crawl_settings["urls"]))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
-    domain_name = len(start_urls) == len(set(allowed_domains))
     for url in start_urls:
-        # find a better way for naming crawlers uniquely
-        name = urlparse(url).netloc if domain_name else (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
+        name = (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
         process.crawl(create_spider(crawl_settings, url, name))
     try:
         process.start()
@@ -310,6 +311,9 @@ if __name__ == '__main__':
         print(error, file=sys.stderr)
 
     # every spider finished, finalize crawl
+    # save LANGSTATS
+    filemanager.save_dataframe(crawl_settings["name"], LANGSTATS_FILENAME, LANGSTATS)
+
     crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings["name"])
     crawl_dir = filemanager.get_crawl_path(crawl_settings["name"])
     stats_df = pandas.DataFrame(columns=["total paragraphs", "unique paragraphs", "unique urls"])
