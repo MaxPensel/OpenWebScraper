@@ -4,7 +4,7 @@ Created on 27.05.2019
 @author: Maximilian Pensel
 """
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox, QAbstractButton
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
 
 

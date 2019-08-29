@@ -4,7 +4,6 @@ from core.Workspace import WorkspaceManager
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
 
 LOG_DIR = "logs"
-MASTER_LOG = "master.log"
 
 
 def simple_logger(modname="core", file_path=None, console_level=INFO, file_level=INFO) -> Logger:
@@ -47,3 +46,6 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
         logger.addHandler(log_fh)
 
     return logger
+
+
+MASTER_LOG = simple_logger(file_path="master.log")
