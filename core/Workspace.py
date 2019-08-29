@@ -4,6 +4,7 @@ Created on 20.07.2019
 @author: Maximilian Pensel
 """
 import os
+from core import MASTER_LOG as LOG
 
 
 class WorkspaceManager:
@@ -33,7 +34,7 @@ class WorkspaceManager:
             """ Set the current workspace to path, creating it if necessary in the process. """
             WorkspaceManager._create_workspace_path(path)
             self._workspace_path = path
-            print("Info: The workspace was switched to {0}.".format(self._workspace_path))
+            LOG.info("Switched workspace to {0}.".format(self._workspace_path))
 
     # End of inner __WorkspaceManager
 
@@ -44,8 +45,9 @@ class WorkspaceManager:
             WorkspaceManager._instance = WorkspaceManager.__WorkspaceManager(path)
         else:
             if path:
-                print("Attention, WorkspaceManager singleton already exists. The current workspace is {0}."
-                      .format(self.get_workspace()))
+                LOG.warning("Attention, calling WorkspaceManager.__init__ with non-empty path even though "
+                            "WorkspaceManager singleton already exists. The current workspace is {0}."
+                            .format(self.get_workspace()))
 
     def __getattr__(self, item):
         return getattr(self._instance, item)

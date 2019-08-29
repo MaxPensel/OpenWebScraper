@@ -13,6 +13,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
 
+from core import MASTER_LOG as LOG
 from core.Workspace import WorkspaceManager
 
 VERSION = "0.3.0 <alpha>"
@@ -82,7 +83,7 @@ class UIWindow(QMainWindow):
             ws_path = dialog.selectedFiles()[0]
             wsm.set_workspace(ws_path)
         else:
-            print("Error: Something went wrong when switching workspace.", file=sys.stderr)
+            LOG.error("Something went wrong when switching workspace.")
 
         self.main_widget.reload_modules(self.mod_loader.modules)
 
@@ -130,8 +131,8 @@ class InfoWindow(QMainWindow):
                         versions[mod_dir] = "{0}".format(mod.VERSION)
                     else:
                         versions[mod_dir] = "- not supported -"
-                except Exception as er:
-                    print(er)
+                except Exception as exc:
+                    LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         
         central = QTableWidget()
         central.setColumnCount(2)
@@ -172,9 +173,9 @@ class ModLoader:
         self.modules = []
 
     def load_modules(self, mods: {}):
-
+        LOG.info("Loading modules.")
         for modname in mods:
-            try: 
+            try:
                 mod = importlib.import_module(ModLoader.MOD_DIR + "." + modname,
                                               ModLoader.MOD_DIR + "." + modname)
                 
@@ -186,19 +187,20 @@ class ModLoader:
                 else:
                     raise AttributeError("__init__.py in {0} is missing MAIN_WIDGET attribute".format(modname))
                 
-            except Exception as ex:
-                print("{0}: {1}".format(type(ex).__name__, ex))
+            except Exception as exc:
+                LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
                 
 
 class Settings:
     
     def __init__(self, settings_file_path: str):
         # init always relevant settings
-        self.modules = []
+        self.modules = None
         
         if not os.path.exists(settings_file_path):
-            print("{0} not found, loading defaults.".format(settings_file_path))
+            LOG.warning("{0} not found, loading defaults.".format(settings_file_path))
         else:
+            LOG.info("Loading settings from {0}.".format(settings_file_path))
             with open(settings_file_path, "r") as settings_file:
                 l_num = 0
                 for line in settings_file.readlines():
@@ -206,8 +208,8 @@ class Settings:
                     try:
                         self.parse_line(line)
                     except IndexError or TypeError or json.JSONDecodeError:
-                        print("Bad format in line {0} in settings file. Format should be 'key=value', where 'key' is "
-                              "a string and 'value' a json-string.".format(l_num))
+                        LOG.error("Bad format in line {0} of settings file. Format should be 'key=value', where 'key' "
+                                  "is a string and 'value' a json-string.".format(l_num))
 
         self.defaults()  # adds the defaults for missing but expected fields
     
@@ -226,8 +228,9 @@ class Settings:
         return Settings.is_line_empty(line) or line[0] == "#"
     
     def defaults(self):
-        if not self.modules:  # has no modules specified
+        if self.modules is None:  # has no modules specified
             self.modules = ["template"]
+            LOG.info("Loading default setting: modules={0}".format(json.dumps(self.modules)))
 
 
 if __name__ == "__main__":
