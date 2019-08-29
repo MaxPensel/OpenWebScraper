@@ -5,9 +5,13 @@
 }
 
 QAbstractButton {
-	background: #99ccff;
+	/*background: #99ccff;*/
 	padding: 6px 20px;
 	font-size: large;
+}
+
+QAbstractButton.iconbutton {
+    padding: 6px;
 }
 
 QPlainTextEdit, QLineEdit {
