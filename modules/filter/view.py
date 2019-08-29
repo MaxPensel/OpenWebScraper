@@ -23,6 +23,3 @@ class FilterWidget(VerticalContainer):
         dir_input_layout.addWidget(self._dir_input_open)
         
         self.addLayout(dir_input_layout)
-        
-TITLE       = "Filter"
-MAIN_WIDGET = FilterWidget 

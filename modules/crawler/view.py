@@ -82,8 +82,3 @@ class CrawlerWidget(VerticalContainer):
         self.addWidget(self.crawl_button)
         
         self.cnt = CrawlerController(self)
-
-
-TITLE = "Crawler"
-MAIN_WIDGET = CrawlerWidget
-VERSION = "1.1.0"
