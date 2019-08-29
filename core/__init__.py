@@ -1,9 +1,8 @@
 import os
 import sys
-from core.Workspace import WorkspaceManager
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
 
-LOG_DIR = "logs"
+MASTER_LOG = "master.log"
 
 
 def simple_logger(modname="core", file_path=None, console_level=INFO, file_level=INFO) -> Logger:
@@ -31,21 +30,17 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
     logger.addHandler(log_ch)
 
     if file_path:
-        log_path = os.path.join(WorkspaceManager().get_workspace(), LOG_DIR, file_path)
-        parent_dir = os.path.abspath(os.path.join(log_path, os.pardir))
-        if not log_path.endswith(".log"):
+        parent_dir = os.path.abspath(os.path.join(file_path, os.pardir))
+        if not file_path.endswith(".log"):
             logger.warning("Log files are recommended to end in '.log'.")
         if not os.path.exists(parent_dir):
             logger.info("Directory {0} is being created for logging.".format(parent_dir))
             os.makedirs(parent_dir, exist_ok=True)
 
-        log_fh = FileHandler(log_path, mode="a")
+        log_fh = FileHandler(file_path, mode="a")
         log_fh.setFormatter(log_fmt)
         log_fh.setLevel(file_level)
 
         logger.addHandler(log_fh)
 
     return logger
-
-
-MASTER_LOG = simple_logger(file_path="master.log")
