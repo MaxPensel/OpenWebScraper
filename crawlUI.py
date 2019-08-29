@@ -13,10 +13,12 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
 
-from core import MASTER_LOG as LOG
+import core
 from core.Workspace import WorkspaceManager
 
 VERSION = "0.3.0 <alpha>"
+
+LOG = core.simple_logger(file_path=core.MASTER_LOG)
 
 
 class UIWindow(QMainWindow):

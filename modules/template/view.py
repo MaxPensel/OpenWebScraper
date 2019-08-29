@@ -9,6 +9,9 @@ See __init__.py for information on how to setup modules.
 from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPushButton
 
 from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit
+import core
+
+LOG = core.simple_logger(modname="template", file_path=core.MASTER_LOG)
 
 
 class TemplateWidget(VerticalContainer):
@@ -20,6 +23,7 @@ class TemplateWidget(VerticalContainer):
     def __init__(self):
         """ Initialises the components of this widget with their layout """
         super().__init__()
+        LOG.info("Initialising template module (and showing off simple logging).")
         
         # setup gui elements
         label = QLabel("Setup your GUI elements here ...")
