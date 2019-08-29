@@ -15,10 +15,13 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox, QComboBox
 
+import core
 from core.QtExtensions import SimpleYesNoMessage, SimpleErrorInfo, SimpleMessageBox
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader, Settings
 from modules.crawler import filemanager
+
+LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
 
 class WindowsCreationFlags:
@@ -112,7 +115,7 @@ class CrawlerController:
     @staticmethod
     def load_file_to_editor(combobox, content_loader, text_area, input_field):
         def combobox_connector(index):
-            if index:
+            if index > 0:  # index 0 should always be empty option, do not load content for that (or index < 0)
                 filename = combobox.itemText(index)
 
                 content = content_loader(filename)
@@ -138,7 +141,7 @@ class CrawlerController:
                 if not msg.is_confirmed():
                     return None
 
-            print("Saving data as {0}".format(filename))
+            LOG.info("Saving data as {0}".format(filename))
             content = text_area.toPlainText()
             content_saver(content, filename)
             CrawlerController.saturate_combobox(combobox, content_loader())
@@ -154,11 +157,11 @@ class CrawlerController:
 
         if crawl_name in filemanager.get_running_crawls():
             msg = SimpleMessageBox("Warning",
-                                   "There is still an unfinished crawl by the name '{0}'. It is recommended to use a "
-                                   "different name. If you are sure that this crawl is not running anymore you can "
-                                   "also restart it with its original settings. "
-                                   .format(crawl_name),
-                                   QMessageBox.Warning)
+                                   "There is still an unfinished crawl by the name '{0}'.".format(crawl_name),
+                                   details="It is recommended to use a different name. If you are sure that this "
+                                           "crawl is not running anymore you can also restart it with its original "
+                                           "settings. ",
+                                   icon=QMessageBox.Warning)
             restart = msg.addButton("Restart Crawl", QMessageBox.ActionRole)
             cancel = msg.addButton("Cancel", QMessageBox.RejectRole)
             msg.exec()
@@ -180,7 +183,7 @@ class CrawlerController:
                     invalid_html += "<li><a href='{0}'>{0}</a></li>".format(inv)
                 invalid_html += "</ul>"
                 if lines == len(invalid) or len(urls) == 0:
-                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b>", invalid_html)
+                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b>", details=invalid_html)
                     msg.exec()
                     return
 
@@ -201,9 +204,9 @@ class CrawlerController:
             msg.exec()
             return
 
-        print("Starting new crawl with settings in file {0}".format(settings_path))
+        LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
         python_exe = os.path.abspath(Settings().python)
-        print("Running scrapy_wrapper.py with {0}".format(python_exe))
+        LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
         try:
             if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
                 p = subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
@@ -220,8 +223,7 @@ class CrawlerController:
                                  cwd="modules/crawler/",
                                  close_fds=True)
         except Exception as exc:
-            print(traceback.format_exc())
-            print(exc)
+            LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
     def setup_crawl(self, urls=[], restart_crawl=False):
         if not restart_crawl:

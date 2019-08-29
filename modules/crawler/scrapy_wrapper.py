@@ -7,6 +7,7 @@ For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPi
 
 @author: Maximilian Pensel
 """
+import logging
 import sys
 import os
 
@@ -14,10 +15,7 @@ if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
 
-import logging
-
 import shutil
-from logging import FileHandler, Formatter, StreamHandler
 
 import pandas
 import json
@@ -34,13 +32,15 @@ from langdetect import DetectorFactory
 import textract
 from textract.exceptions import CommandLineError
 
-from core.Workspace import WorkspaceManager
+import core
+from core.Workspace import WorkspaceManager, LOG_DIR as WS_LOG_DIR
 from modules.crawler import filemanager
 
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
 LANGSTATS_FILENAME = "languages"
 LANGSTATS = pandas.DataFrame(columns=ACCEPTED_LANG)
 LANGSTATS.index.name = "url"
+
 
 if len(sys.argv) >= 2:
     SETTINGS_PATH = sys.argv[1]
@@ -51,15 +51,21 @@ DEBUG = False
 if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
     DEBUG = True
 
+if DEBUG:
+    log_level = logging.DEBUG
+else:
+    log_level = logging.INFO
+
+MLOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG, file_level=log_level)
+
 
 def load_settings(settings_path):
     try:
         settings_file = open(settings_path, "r")
         settings = json.load(settings_file)
-        print("Starting crawl with the following settings: {0}".format(settings))
+        MLOG.info("Starting crawl with the following settings: {0}".format(settings))
     except Exception as exc:
-        print(traceback.format_exc(), file=sys.stderr)
-        print(exc, file=sys.stderr)
+        MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return None
 
     return settings
@@ -110,27 +116,22 @@ def create_spider(settings, start_url, crawler_name):
         def __init__(self):
             super().__init__()
             # setup individual logger for every spider
-            log_fmt = Formatter(fmt="%(asctime)s - %(levelname)s - %(message)s")
+            self.s_log = core.simple_logger(modname="crawlspider",
+                                            file_path=os.path.join(WorkspaceManager().get_workspace(),
+                                                                   WS_LOG_DIR,
+                                                                   self.crawl_settings["name"],
+                                                                   name + ".log")
+                                            )
+            for hand in self.s_log.handlers:
+                self.logger.logger.addHandler(hand)
+            self.s_log.info("[__init__] - Crawlspider logger setup finished.")
 
-            log_fh = FileHandler(os.path.join(WorkspaceManager().get_workspace(), "logs", name + ".log"),
-                                 mode="w")
-            log_fh.setFormatter(log_fmt)
-            log_fh.setLevel(logging.DEBUG)
-
-            log_ch = StreamHandler(sys.stdout)
-            log_ch.setLevel(logging.INFO)
-            log_ch.setFormatter(log_fmt)
-
-            self.logger.logger.addHandler(log_fh)
-            self.logger.logger.addHandler(log_ch)
-            self.logger.debug("[__init__] - Logger setup finished.")
-
+            # setup empty stats for accepted languages
             for lang in ACCEPTED_LANG:
                 LANGSTATS.at[start_url, lang] = 0
 
-
         def parse_item(self, response):
-            self.logger.info("[parse_item] - Processing {0}".format(response.url))
+            self.s_log.info("[parse_item] - Processing {0}".format(response.url))
 
             ct = str(response.headers.get(b"Content-Type", "").lower())
             if "pdf" in ct:
@@ -174,7 +175,7 @@ def create_spider(settings, start_url, crawler_name):
             try:
                 content = textract.process(filepath)
             except CommandLineError as exc:  # Catching either ExtensionNotSupported or MissingFileError
-                self.logger.error(exc)
+                self.s_log.exception("[handle_pdf] - {0}: {1}".format(type(exc).__name__, exc))
                 return []  # In any case, text extraction failed so no items were parsed
 
             global DEBUG  # fetch DEBUG flag
@@ -206,10 +207,9 @@ def create_spider(settings, start_url, crawler_name):
                         items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
                     self.register_paragraph_language(lang)
                 except LangDetectException as exc:
-                    pass
-                    self.logger.error("[process_paragraph] - Error: "
-                                      "{0} on langdetect input '{1}'. Being careful and storing the value anyway!"
-                                      .format(exc, par_content))
+                    self.s_log.error("[process_paragraph] - "
+                                     "{0} on langdetect input '{1}'. Being careful and storing the value anyway!"
+                                     .format(exc, par_content))
                     # Storing the value if language detection has failed. This behaviour remains to be evaluated.
                     # Of course repeating code is ugly, but language detection works the same with pdf and html,
                     # so being outsourced in the future anyway.
@@ -218,7 +218,8 @@ def create_spider(settings, start_url, crawler_name):
 
             return items
 
-        def register_paragraph_language(self, lang):
+        @staticmethod
+        def register_paragraph_language(lang):
             if lang not in LANGSTATS.columns:
                 LANGSTATS.insert(len(LANGSTATS.columns), lang, 0, True)
             LANGSTATS.at[start_url, lang] += 1
@@ -246,18 +247,22 @@ class GenericCrawlPipeline(object):
 
         domain = urlparse(url).netloc
         if domain in spider.allowed_domains:
-            spider.logger.info("[process_item] - Adding content for {0} to {1}".format(str(url), str(spider.name)))
+            spider.s_log.info("[process_item] - Adding content for {0} to {1}".format(str(url), str(spider.name)))
             # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
             filemanager.add_to_csv(spider.crawl_settings["name"], spider.name, df_item)
 
         return item
 
     def open_spider(self, spider):
+        spider.s_log.info(" vvvvvvvvvvvvvvvvvvvvvvvvvvvv OPENING SPIDER {0} vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+                          .format(spider.name))
         filemanager.make_raw_data_path(spider.crawl_settings["name"])
         for domain in spider.allowed_domains:
             filemanager.create_csv(spider.crawl_settings["name"], spider.name, True)
 
     def close_spider(self, spider):
+        spider.s_log.info(" ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CLOSING SPIDER {0} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+                          .format(spider.name))
         filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
 
 
@@ -272,16 +277,15 @@ class GenericScrapySettings(Settings):
             "DEPTH_PRIORITY": 1,
             "SCHEDULER_DISK_QUEUE": 'scrapy.squeues.PickleFifoDiskQueue',
             "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue',
-            "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"),
+            # "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"),
             "ROBOTSTXT_OBEY": True
             })
 
 
 if SETTINGS_PATH is None:
-    print("Error: no crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
-          "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
-          "  <spec_file> should be a json that contains start urls, blacklist, workspace directory, etc.",
-          file=sys.stderr)
+    MLOG.error("No crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
+               "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
+               "  <spec_file> should be a json that contains start urls, blacklist, workspace directory, etc.")
     exit()
 
 
@@ -293,10 +297,6 @@ if __name__ == '__main__':
     # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
     WorkspaceManager(crawl_settings["workspace"])
 
-    if not DEBUG:
-        sys.stdout = open(os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"), 'a')
-        sys.stderr = sys.stdout
-
     scrapy_settings = GenericScrapySettings()
 
     process = CrawlerProcess(settings=scrapy_settings)
@@ -307,8 +307,8 @@ if __name__ == '__main__':
         process.crawl(create_spider(crawl_settings, url, name))
     try:
         process.start()
-    except Exception as error:
-        print(error, file=sys.stderr)
+    except Exception as exc:
+        MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
     # every spider finished, finalize crawl
     # save LANGSTATS
@@ -336,7 +336,7 @@ if __name__ == '__main__':
                 stats_df.at[col, "unique urls"] = unique["url"]
         except Exception as exc:
             stats_df.at[csv.replace(".csv", ""), "total paragraphs"] = "Could not process"
-            print("Error while generating analytics: {0}".format(exc))
+            MLOG.exception("Error while analyzing results. {0}: {1}".format(type(exc).__name__, exc))
 
     filemanager.save_dataframe(crawl_settings["name"], "stats", stats_df)
 

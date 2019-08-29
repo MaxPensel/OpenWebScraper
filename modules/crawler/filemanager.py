@@ -16,8 +16,11 @@ import shutil
 import sys
 import traceback
 import pandas
+import core
 
 from core.Workspace import WorkspaceManager
+
+LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
 running_crawl_settings_path = "running"
 url_file_extension = "urls"
@@ -74,7 +77,7 @@ def get_blacklist_content(filename):
 
 def save_url_content(content, filename):
     if not filename:
-        print("Error: please specify a filename before saving.", file=sys.stderr)
+        LOG.error("No filename given for saving url content.")
         return
 
     global url_file_extension
@@ -85,7 +88,7 @@ def save_url_content(content, filename):
 
 def save_blacklist_content(content, filename):
     if not filename:
-        print("Error: please specify a filename before saving.", file=sys.stderr)
+        LOG.error("No filename given for saving url content.")
         return
 
     global blacklist_file_extension
@@ -129,7 +132,7 @@ def get_path_to_run_spec(crawl_name):
 
 def save_crawl_settings(name, settings):
     if not name:
-        print("Error: please name the crawl before starting it.", file=sys.stderr)
+        LOG.error("No crawl name given.")
         return
 
     global running_crawl_settings_path
@@ -139,8 +142,7 @@ def save_crawl_settings(name, settings):
 
         __save_file_content(json.dumps(settings, sort_keys=True, indent=4, separators=(',', ': ')), filepath)
     except Exception as exc:
-        print(traceback.format_exc())
-        print("[save_crawl_settings] - {0}".format(exc))
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return False
 
     return filepath
@@ -214,11 +216,10 @@ def __get_filenames_of_type(ext, path, directories=False):
                 filenames.append(filename)
             elif not directories and filename.endswith(ext):
                 filenames.append(os.path.splitext(filename)[0])
-    except IOError as err:
-        print("[__get_filenames_of_type] - {0}".format(err), file=sys.stderr)
+    except IOError as exc:
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
     except Exception as exc:
-        print(traceback.format_exc())
-        print("[__get_filenames_of_type] - {0}".format(exc), file=sys.stderr)
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
     return filenames
 
@@ -228,11 +229,10 @@ def __get_file_content(path):
     try:
         with open(path) as in_file:
             content = in_file.read()
-    except IOError as err:
-        print("[__get_file_content] - {0}".format(err), file=sys.stderr)
+    except IOError as exc:
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
     except Exception as exc:
-        print(traceback.format_exc())
-        print("[__get_file_content] - {0}".format(exc), file=sys.stderr)
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
     return content
 
@@ -241,6 +241,6 @@ def __save_file_content(content, path):
     try:
         with open(path, "w") as out_file:
             out_file.write(content)
-        print("Content successfully saved to {0}".format(path))
-    except IOError as err:
-        print(err, file=sys.stderr)
+        LOG.info("Content successfully saved to {0}".format(path))
+    except IOError as exc:
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
