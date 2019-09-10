@@ -56,6 +56,9 @@ class CrawlerController:
         self._view.blacklist_select.setInsertPolicy(QComboBox.InsertAlphabetically)
         CrawlerController.saturate_combobox(self._view.blacklist_select, filemanager.get_blacklist_filenames())
 
+        self._view.continue_crawl_combobox.setInsertPolicy(QComboBox.InsertAlphabetically)
+        CrawlerController.saturate_combobox(self._view.continue_crawl_combobox, filemanager.get_running_crawls())
+
     def setup_behaviour(self):
         """ Setup the behaviour of elements
         
