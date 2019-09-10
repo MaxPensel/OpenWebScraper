@@ -277,7 +277,6 @@ class GenericScrapySettings(Settings):
             "DEPTH_PRIORITY": 1,
             "SCHEDULER_DISK_QUEUE": 'scrapy.squeues.PickleFifoDiskQueue',
             "SCHEDULER_MEMORY_QUEUE": 'scrapy.squeues.FifoMemoryQueue',
-            # "LOG_FILE": os.path.join(WorkspaceManager().get_workspace(), "logs", "scrapy.log"),
             "ROBOTSTXT_OBEY": True
             })
 
@@ -298,6 +297,10 @@ if __name__ == '__main__':
     WorkspaceManager(crawl_settings["workspace"])
 
     scrapy_settings = GenericScrapySettings()
+    scrapy_settings.set("LOG_FILE", os.path.join(WorkspaceManager().get_workspace(),
+                                                 WS_LOG_DIR,
+                                                 crawl_settings["name"],
+                                                 "scrapy.log"))
 
     process = CrawlerProcess(settings=scrapy_settings)
     start_urls = list(set(crawl_settings["urls"]))
