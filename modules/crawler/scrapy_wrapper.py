@@ -160,10 +160,10 @@ def create_spider(settings, start_url, crawler_name):
         def handle_pdf(self, response):
             filename = response.url.split('/')[-1]
             pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
-                                       filemanager.running_crawl_settings_path,
+                                       filemanager.running_crawl_settings_dir,
                                        "PDF_TMP")
             txt_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
-                                       filemanager.running_crawl_settings_path,
+                                       filemanager.running_crawl_settings_dir,
                                        "TXT_TMP")
             if not os.path.exists(pdf_tmp_dir):
                 os.makedirs(pdf_tmp_dir)
@@ -297,10 +297,14 @@ if __name__ == '__main__':
     WorkspaceManager(crawl_settings["workspace"])
 
     scrapy_settings = GenericScrapySettings()
-    scrapy_settings.set("LOG_FILE", os.path.join(WorkspaceManager().get_workspace(),
-                                                 WS_LOG_DIR,
-                                                 crawl_settings["name"],
-                                                 "scrapy.log"))
+    crawl_log_path = os.path.join(WorkspaceManager().get_log_path(),
+                                  crawl_settings["name"])
+    if not os.path.exists(crawl_log_path):
+        os.makedirs(crawl_log_path, exist_ok=True)
+    scrapy_log_path = os.path.join(crawl_log_path,
+                                   "scrapy.log")
+
+    scrapy_settings.set("LOG_FILE", scrapy_log_path)
 
     process = CrawlerProcess(settings=scrapy_settings)
     start_urls = list(set(crawl_settings["urls"]))

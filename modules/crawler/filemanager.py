@@ -22,15 +22,22 @@ from core.Workspace import WorkspaceManager
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
-running_crawl_settings_path = "running"
+# Directories within workspace
+running_crawl_settings_dir = "running"
+data_dir = "data"
+raw_data_dir = "raw"
+
+# File extensions
 url_file_extension = "urls"
 blacklist_file_extension = "blacklist"
+
+# File state flags
 incomplete_flag = "-INCOMPLETE"
 
 
 def get_crawl_raw_path(crawlname):
     """ Returns '%workspace-dir%/data/%crawlname%/raw/' """
-    return os.path.join(get_crawl_path(crawlname), "raw")
+    return os.path.join(get_crawl_path(crawlname), raw_data_dir)
 
 
 def get_crawl_path(crawlname):
@@ -40,7 +47,7 @@ def get_crawl_path(crawlname):
 
 def get_data_path():
     """ Returns '%workspace-dir%/data/' """
-    return os.path.join(WorkspaceManager().get_workspace(), "data")
+    return os.path.join(WorkspaceManager().get_workspace(), data_dir)
 
 
 def get_url_filenames():
@@ -114,16 +121,16 @@ def extend_dataframe(crawl: str, name: str, df: pandas.DataFrame):
 
 
 def get_running_crawls():
-    global running_crawl_settings_path
+    global running_crawl_settings_dir
     wsm = WorkspaceManager()
 
-    return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_path))
+    return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_dir))
 
 
 def get_path_to_run_spec(crawl_name):
-    global running_crawl_settings_path
+    global running_crawl_settings_dir
     wsm = WorkspaceManager()
-    path = os.path.join(wsm.get_workspace(), running_crawl_settings_path, crawl_name + ".json")
+    path = os.path.join(wsm.get_workspace(), running_crawl_settings_dir, crawl_name + ".json")
     if os.path.exists(path):
         return path
     else:
@@ -135,10 +142,10 @@ def save_crawl_settings(name, settings):
         LOG.error("No crawl name given.")
         return
 
-    global running_crawl_settings_path
+    global running_crawl_settings_dir
     try:
-        os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path), exist_ok=True)
-        filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path, name + ".json")
+        os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir), exist_ok=True)
+        filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, name + ".json")
 
         __save_file_content(json.dumps(settings, sort_keys=True, indent=4, separators=(',', ': ')), filepath)
     except Exception as exc:
@@ -197,14 +204,14 @@ def complete_csv(crawl: str, domain: str):
 
 
 def finalize_crawl(crawl):
-    global running_crawl_settings_path
+    global running_crawl_settings_dir
     running_filename = crawl + ".json"
-    running_file = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path, running_filename)
+    running_file = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, running_filename)
     destination = os.path.join(get_crawl_path(crawl), running_filename)
 
     shutil.move(running_file, destination)
 
-    delete_and_clean(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_path))
+    delete_and_clean(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir))
 
 
 def __get_filenames_of_type(ext, path, directories=False):

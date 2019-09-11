@@ -39,6 +39,13 @@ class WorkspaceManager:
             self._workspace_path = path
             LOG.info("Switched workspace to {0}.".format(self._workspace_path))
 
+        def get_log_path(self):
+            self._create_log_path()
+            return os.path.join(self.get_workspace(), LOG_DIR)
+
+        def _create_log_path(self):
+            os.makedirs(os.path.join(self.get_workspace(), LOG_DIR), exist_ok=True)
+
     # End of inner __WorkspaceManager
 
     _instance = None
