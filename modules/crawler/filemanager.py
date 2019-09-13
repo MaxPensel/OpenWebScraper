@@ -19,6 +19,7 @@ import pandas
 import core
 
 from core.Workspace import WorkspaceManager
+from modules.crawler.model import CrawlSpecification
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
@@ -137,7 +138,7 @@ def get_path_to_run_spec(crawl_name):
         return None
 
 
-def save_crawl_settings(name, settings):
+def save_crawl_settings(name, settings: CrawlSpecification):
     if not name:
         LOG.error("No crawl name given.")
         return
@@ -147,7 +148,7 @@ def save_crawl_settings(name, settings):
         os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir), exist_ok=True)
         filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, name + ".json")
 
-        __save_file_content(json.dumps(settings, sort_keys=True, indent=4, separators=(',', ': ')), filepath)
+        __save_file_content(settings.serialize(), filepath)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return False

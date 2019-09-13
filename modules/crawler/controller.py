@@ -20,6 +20,7 @@ from core.QtExtensions import SimpleYesNoMessage, SimpleErrorInfo, SimpleMessage
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader, Settings
 from modules.crawler import filemanager
+from modules.crawler.model import CrawlSpecification
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
@@ -36,6 +37,7 @@ class CrawlerController:
 
     def __init__(self, view):
         self._view = view
+        self.crawl_specification = CrawlSpecification()
 
         self.init_elements()
 
@@ -50,14 +52,21 @@ class CrawlerController:
 
         # self._view.blacklist_save.setEnabled(False)
         # self._view.url_save.setEnabled(False)
-        self._view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
-        CrawlerController.saturate_combobox(self._view.url_select, filemanager.get_url_filenames())
+        self._view.crawl_specification_view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
+        CrawlerController.saturate_combobox(self._view.crawl_specification_view.url_select,
+                                            filemanager.get_url_filenames())
 
-        self._view.blacklist_select.setInsertPolicy(QComboBox.InsertAlphabetically)
-        CrawlerController.saturate_combobox(self._view.blacklist_select, filemanager.get_blacklist_filenames())
+        self._view.crawl_specification_view.blacklist_select.setInsertPolicy(QComboBox.InsertAlphabetically)
+        CrawlerController.saturate_combobox(self._view.crawl_specification_view.blacklist_select,
+                                            filemanager.get_blacklist_filenames())
+
+        self._view.crawl_specification_view.url_delete.setDisabled(True)
+        self._view.crawl_specification_view.blacklist_delete.setDisabled(True)
 
         self._view.continue_crawl_combobox.setInsertPolicy(QComboBox.InsertAlphabetically)
         CrawlerController.saturate_combobox(self._view.continue_crawl_combobox, filemanager.get_running_crawls())
+
+        self._view.prev_crawl_groupbox.setDisabled(True)
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -66,31 +75,36 @@ class CrawlerController:
         Should not initialise default state, use init_elements() for that.
         """
 
-        self._view.url_select.currentIndexChanged.connect(
-            self.load_file_to_editor(self._view.url_select,
+        self._view.crawl_specification_view.url_select.currentIndexChanged.connect(
+            self.load_file_to_editor(self._view.crawl_specification_view.url_select,
                                      filemanager.get_url_content,
-                                     self._view.url_area,
-                                     self._view.url_input))
-        self._view.url_save.clicked.connect(
-            self.build_save_file_connector(self._view.url_input,
-                                           self._view.url_select,
-                                           self._view.url_area,
+                                     self._view.crawl_specification_view.url_area,
+                                     self._view.crawl_specification_view.url_input))
+        self._view.crawl_specification_view.url_save.clicked.connect(
+            self.build_save_file_connector(self._view.crawl_specification_view.url_input,
+                                           self._view.crawl_specification_view.url_select,
+                                           self._view.crawl_specification_view.url_area,
                                            filemanager.save_url_content,
                                            filemanager.get_url_filenames))
 
-        self._view.blacklist_select.currentIndexChanged.connect(
-            self.load_file_to_editor(self._view.blacklist_select,
+        self._view.crawl_specification_view.blacklist_select.currentIndexChanged.connect(
+            self.load_file_to_editor(self._view.crawl_specification_view.blacklist_select,
                                      filemanager.get_blacklist_content,
-                                     self._view.blacklist_area,
-                                     self._view.blacklist_input))
-        self._view.blacklist_save.clicked.connect(
-            self.build_save_file_connector(self._view.blacklist_input,
-                                           self._view.blacklist_select,
-                                           self._view.blacklist_area,
+                                     self._view.crawl_specification_view.blacklist_area,
+                                     self._view.crawl_specification_view.blacklist_input))
+        self._view.crawl_specification_view.blacklist_save.clicked.connect(
+            self.build_save_file_connector(self._view.crawl_specification_view.blacklist_input,
+                                           self._view.crawl_specification_view.blacklist_select,
+                                           self._view.crawl_specification_view.blacklist_area,
                                            filemanager.save_blacklist_content,
                                            filemanager.get_blacklist_filenames))
 
         self._view.crawl_button.clicked.connect(self.start_crawl)
+
+        # trigger model updates
+        self._view.crawl_specification_view.url_area.textChanged.connect(self.update_model)
+        self._view.crawl_specification_view.blacklist_area.textChanged.connect(self.update_model)
+        self._view.crawl_name_input.textChanged.connect(self.update_model)
 
     def setup_completion(self):
         url_model = QStringListModel()
@@ -98,14 +112,14 @@ class CrawlerController:
         url_completer = QCompleter()
         url_completer.setModel(url_model)
         url_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
-        self._view.url_input.setCompleter(url_completer)
+        self._view.crawl_specification_view.url_input.setCompleter(url_completer)
 
         blacklist_model = QStringListModel()
         blacklist_model.setStringList(filemanager.get_blacklist_filenames())
         blacklist_completer = QCompleter()
         blacklist_completer.setModel(blacklist_model)
         blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
-        self._view.blacklist_input.setCompleter(blacklist_completer)
+        self._view.crawl_specification_view.blacklist_input.setCompleter(blacklist_completer)
 
     @staticmethod
     def saturate_combobox(combobox: QComboBox, items, include_empty=True):
@@ -151,22 +165,37 @@ class CrawlerController:
             combobox.setCurrentIndex(combobox.findText(filename, flags=Qt.MatchExactly))
         return save_button_connector
 
+    def update_view(self):
+        self._view.crawl_name_input.setDisplayText(self.crawl_specification.name)
+        self._view.crawl_specification_view.url_area.setPlainText("\n".join(self.crawl_specification.urls))
+        self._view.crawl_specification_view.blacklist_area.setPlainText("\n".join(self.crawl_specification.blacklist))
+
+    def update_model(self):
+        # eventually we could enforce urls and blacklist to be sets instead of lists here
+        self.crawl_specification\
+            .update(name=self._view.crawl_name_input.displayText(),
+                    workspace=WorkspaceManager().get_workspace(),
+                    urls=self._view.crawl_specification_view.url_area.toPlainText().splitlines(),
+                    blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines(),
+                    xpaths=["//p", "//td"])
+        LOG.info("Crawl specification model updated.")
+
     def start_crawl(self):
-        crawl_name = self._view.crawl_name_input.displayText()
-        if not crawl_name:
+        if not self.crawl_specification.name:
             msg = SimpleErrorInfo("Error", "Your crawl must have a name.")
             msg.exec()
             return
 
-        if crawl_name in filemanager.get_running_crawls():
+        if self.crawl_specification.name in filemanager.get_running_crawls():
             msg = SimpleMessageBox("Warning",
-                                   "There is still an unfinished crawl by the name '{0}'.".format(crawl_name),
+                                   "There is still an unfinished crawl by the name '{0}'."
+                                   .format(self.crawl_specification.name),
                                    details="It is recommended to use a different name. If you are sure that this "
                                            "crawl is not running anymore you can also restart it with its original "
                                            "settings. ",
                                    icon=QMessageBox.Warning)
             restart = msg.addButton("Restart Crawl", QMessageBox.ActionRole)
-            cancel = msg.addButton("Cancel", QMessageBox.RejectRole)
+            msg.addButton("Cancel", QMessageBox.RejectRole)
             msg.exec()
             pressed = msg.clickedButton()
             if pressed == restart:
@@ -199,8 +228,10 @@ class CrawlerController:
 
                 if not msg.is_confirmed():
                     return
+                # else: update specification to use only valid urls and start the crawl
+                self.crawl_specification.update(urls=urls)
 
-            settings_path = self.setup_crawl(urls=urls)
+            settings_path = self.setup_crawl()
 
         if not settings_path:
             msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
@@ -212,12 +243,12 @@ class CrawlerController:
         LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
         try:
             if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-                p = subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
-                                     stdout=sys.stdout,
-                                     shell=True,
-                                     start_new_session=True,
-                                     cwd="modules/crawler/",
-                                     creationflags=WindowsCreationFlags.DETACHED_PROCESS)
+                subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+                                 stdout=sys.stdout,
+                                 shell=True,
+                                 start_new_session=True,
+                                 cwd="modules/crawler/",
+                                 creationflags=WindowsCreationFlags.DETACHED_PROCESS)
             else:
                 subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
                                  stdout=sys.stdout,
@@ -228,32 +259,25 @@ class CrawlerController:
         except Exception as exc:
             LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
-    def setup_crawl(self, urls=[], restart_crawl=False):
+    def setup_crawl(self, restart_crawl=False):
         if not restart_crawl:
-            crawl_name = self._view.crawl_name_input.displayText()
-            if crawl_name in filemanager.get_crawlnames():
+            if self.crawl_specification.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"
-                                         .format(crawl_name))
+                                         .format(self.crawl_specification.name))
                 if not msg.is_confirmed():
                     return None
 
-            settings = {"workspace": WorkspaceManager().get_workspace(),
-                        "name": self._view.crawl_name_input.displayText(),
-                        "urls": urls,
-                        "blacklist": []
-                        }
 
-            return filemanager.save_crawl_settings(self._view.crawl_name_input.displayText(), settings)
+            return filemanager.save_crawl_settings(self.crawl_specification.name, self.crawl_specification)
         else:
-            return filemanager.get_path_to_run_spec(self._view.crawl_name_input.displayText())
+            return filemanager.get_path_to_run_spec(self.crawl_specification.name)
 
     def detect_valid_urls(self):
-        text = self._view.url_area.toPlainText()
         lines = 0
         invalid = list()
         urls = list()
-        for line in text.splitlines():
+        for line in self.crawl_specification.urls:
             if line:
                 lines += 1
                 validator_result = validators.url(line)
