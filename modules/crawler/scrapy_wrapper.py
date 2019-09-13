@@ -11,6 +11,8 @@ import logging
 import sys
 import os
 
+from modules.crawler.model import CrawlSpecification
+
 if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
@@ -59,11 +61,13 @@ else:
 MLOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG, file_level=log_level)
 
 
-def load_settings(settings_path):
+def load_settings(settings_path) -> CrawlSpecification:
     try:
         settings_file = open(settings_path, "r")
-        settings = json.load(settings_file)
-        MLOG.info("Starting crawl with the following settings: {0}".format(settings))
+        settings = CrawlSpecification()
+        json_str = settings_file.read()
+        settings.deserialize(json_str)
+        MLOG.info("Starting crawl with the following settings: {0}".format(json_str))
     except Exception as exc:
         MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return None
@@ -101,7 +105,7 @@ def create_spider(settings, start_url, crawler_name):
                              'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
                              )
 
-        # start_urls = parse_urls(filemanager.get_url_content(crawl_settings["urls_file"]))
+        # start_urls = parse_urls(filemanager.get_url_content(crawl_settings.urls))
         # allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
 
         # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
@@ -119,7 +123,7 @@ def create_spider(settings, start_url, crawler_name):
             self.s_log = core.simple_logger(modname="crawlspider",
                                             file_path=os.path.join(WorkspaceManager().get_workspace(),
                                                                    WS_LOG_DIR,
-                                                                   self.crawl_settings["name"],
+                                                                   self.crawl_settings.name,
                                                                    name + ".log")
                                             )
             for hand in self.s_log.handlers:
@@ -159,10 +163,10 @@ def create_spider(settings, start_url, crawler_name):
 
         def handle_pdf(self, response):
             filename = response.url.split('/')[-1]
-            pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
+            pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings.workspace,
                                        filemanager.running_crawl_settings_dir,
                                        "PDF_TMP")
-            txt_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings["workspace"],
+            txt_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings.workspace,
                                        filemanager.running_crawl_settings_dir,
                                        "TXT_TMP")
             if not os.path.exists(pdf_tmp_dir):
@@ -249,21 +253,21 @@ class GenericCrawlPipeline(object):
         if domain in spider.allowed_domains:
             spider.s_log.info("[process_item] - Adding content for {0} to {1}".format(str(url), str(spider.name)))
             # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
-            filemanager.add_to_csv(spider.crawl_settings["name"], spider.name, df_item)
+            filemanager.add_to_csv(spider.crawl_settings.name, spider.name, df_item)
 
         return item
 
     def open_spider(self, spider):
         spider.s_log.info(" vvvvvvvvvvvvvvvvvvvvvvvvvvvv OPENING SPIDER {0} vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
                           .format(spider.name))
-        filemanager.make_raw_data_path(spider.crawl_settings["name"])
+        filemanager.make_raw_data_path(spider.crawl_settings.name)
         for domain in spider.allowed_domains:
-            filemanager.create_csv(spider.crawl_settings["name"], spider.name, True)
+            filemanager.create_csv(spider.crawl_settings.name, spider.name, True)
 
     def close_spider(self, spider):
         spider.s_log.info(" ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CLOSING SPIDER {0} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
                           .format(spider.name))
-        filemanager.complete_csv(spider.crawl_settings["name"], spider.name)
+        filemanager.complete_csv(spider.crawl_settings.name, spider.name)
 
 
 class GenericScrapySettings(Settings):
@@ -294,11 +298,11 @@ if __name__ == '__main__':
 
     crawl_settings = load_settings(SETTINGS_PATH)
     # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
-    WorkspaceManager(crawl_settings["workspace"])
+    WorkspaceManager(crawl_settings.workspace)
 
     scrapy_settings = GenericScrapySettings()
     crawl_log_path = os.path.join(WorkspaceManager().get_log_path(),
-                                  crawl_settings["name"])
+                                  crawl_settings.name)
     if not os.path.exists(crawl_log_path):
         os.makedirs(crawl_log_path, exist_ok=True)
     scrapy_log_path = os.path.join(crawl_log_path,
@@ -307,7 +311,7 @@ if __name__ == '__main__':
     scrapy_settings.set("LOG_FILE", scrapy_log_path)
 
     process = CrawlerProcess(settings=scrapy_settings)
-    start_urls = list(set(crawl_settings["urls"]))
+    start_urls = list(set(crawl_settings.urls))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
     for url in start_urls:
         name = (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
@@ -319,10 +323,10 @@ if __name__ == '__main__':
 
     # every spider finished, finalize crawl
     # save LANGSTATS
-    filemanager.save_dataframe(crawl_settings["name"], LANGSTATS_FILENAME, LANGSTATS)
+    filemanager.save_dataframe(crawl_settings.name, LANGSTATS_FILENAME, LANGSTATS)
 
-    crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings["name"])
-    crawl_dir = filemanager.get_crawl_path(crawl_settings["name"])
+    crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings.name)
+    crawl_dir = filemanager.get_crawl_path(crawl_settings.name)
     stats_df = pandas.DataFrame(columns=["total paragraphs", "unique paragraphs", "unique urls"])
     stats_df.index.name = "url"
     one_incomplete = False
@@ -345,7 +349,7 @@ if __name__ == '__main__':
             stats_df.at[csv.replace(".csv", ""), "total paragraphs"] = "Could not process"
             MLOG.exception("Error while analyzing results. {0}: {1}".format(type(exc).__name__, exc))
 
-    filemanager.save_dataframe(crawl_settings["name"], "stats", stats_df)
+    filemanager.save_dataframe(crawl_settings.name, "stats", stats_df)
 
     if not one_incomplete and not DEBUG:
-        filemanager.finalize_crawl(crawl_settings["name"])
+        filemanager.finalize_crawl(crawl_settings.name)

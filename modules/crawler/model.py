@@ -39,3 +39,6 @@ class CrawlSpecification:
 
     def serialize(self):
         return json.dumps(self.__dict__, sort_keys=True, indent=4, separators=(',', ': '))
+
+    def deserialize(self, json_str):
+        self.__dict__ = json.loads(json_str)
