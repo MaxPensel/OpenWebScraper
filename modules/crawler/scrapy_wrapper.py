@@ -11,7 +11,7 @@ import logging
 import sys
 import os
 
-from modules.crawler.model import CrawlSpecification
+from modules.crawler.model import CrawlSpecification, CrawlMode
 
 if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
@@ -62,12 +62,42 @@ MLOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG, file_lev
 
 
 def load_settings(settings_path) -> CrawlSpecification:
+    """
+    Loads the json string in settings_path and deserializes to CrawlSpecification object.
+    Determines required behaviour with respect to CrawlSpecification.mode.
+    :param settings_path: file path to the json crawl specification file
+    :return: parsed and semantically updated CrawlSpecification object
+    """
     try:
         settings_file = open(settings_path, "r")
         settings = CrawlSpecification()
         json_str = settings_file.read()
         settings.deserialize(json_str)
-        MLOG.info("Starting crawl with the following settings: {0}".format(json_str))
+
+        # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
+        WorkspaceManager(settings.workspace)
+
+        # determine behaviour w.r.t. mode
+        if settings.mode == CrawlMode.NEW:
+            filemanager.delete_and_clean(filemanager.get_crawl_path(settings.name))
+        elif settings.mode == CrawlMode.CONTINUE:
+            MLOG.info("Determining incomplete/non-existent data files to continue crawling.")
+            datafiles = filemanager.get_datafiles(settings.name)
+            run_with = list()
+            for url in settings.urls:
+                fname = url2filename(url)
+                if (fname + filemanager.incomplete_flag) in datafiles:
+                    run_with.append(url)
+                elif fname not in datafiles:
+                    run_with.append(url)
+            MLOG.info("Crawl continuation detected the following {0} out of {1} urls to be incomplete or missing: {2}"
+                      .format(len(run_with), len(settings.urls), run_with))
+            settings.update(urls=run_with)
+        elif settings.mode == CrawlMode.RECRAWL_EMPTY:
+            # load all datafiles, find empty dataframes and modify settings.url accordingly
+            pass
+
+        MLOG.info("Starting crawl with the following settings:\n{0}".format(settings.serialize()))
     except Exception as exc:
         MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return None
@@ -285,6 +315,9 @@ class GenericScrapySettings(Settings):
             })
 
 
+def url2filename(url):
+    return (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
+
 if SETTINGS_PATH is None:
     MLOG.error("No crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
                "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
@@ -297,8 +330,10 @@ if __name__ == '__main__':
     DetectorFactory.seed = 0
 
     crawl_settings = load_settings(SETTINGS_PATH)
-    # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
-    WorkspaceManager(crawl_settings.workspace)
+
+    if not crawl_settings:
+        MLOG.error("Crawl settings could not be loaded. Exiting scrapy_wrapper.")
+        sys.exit(1)
 
     scrapy_settings = GenericScrapySettings()
     crawl_log_path = os.path.join(WorkspaceManager().get_log_path(),
@@ -314,7 +349,7 @@ if __name__ == '__main__':
     start_urls = list(set(crawl_settings.urls))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
     for url in start_urls:
-        name = (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
+        name = url2filename(url)
         process.crawl(create_spider(crawl_settings, url, name))
     try:
         process.start()

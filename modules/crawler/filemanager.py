@@ -128,6 +128,16 @@ def get_running_crawls():
     return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_dir))
 
 
+def load_running_crawl_settings(name):
+    spec = CrawlSpecification()
+    spec.deserialize(open(get_path_to_run_spec(name), "r").read())
+    return spec
+
+
+def get_datafiles(crawl_name):
+    return __get_filenames_of_type(".csv", get_crawl_raw_path(crawl_name))
+
+
 def get_path_to_run_spec(crawl_name):
     global running_crawl_settings_dir
     wsm = WorkspaceManager()
@@ -157,16 +167,17 @@ def save_crawl_settings(name, settings: CrawlSpecification):
 
 
 def delete_and_clean(path, ignore_empty=False):
-    if os.path.isfile(path):
-        os.remove(path)
-        path = os.path.dirname(path)
+    if os.path.exists(path):
+        if os.path.isfile(path):
+            os.remove(path)
+            path = os.path.dirname(path)
 
-    # only delete the directory if it is empty, unless otherwise specified
-    if ignore_empty or not os.listdir(path):
-        # combination of the following three delete the full directory tree whose root is specified by path
-        shutil.rmtree(path)
-        os.makedirs(path)
-        os.removedirs(path)
+        # only delete the directory if it is empty, unless otherwise specified
+        if ignore_empty or not os.listdir(path):
+            # combination of the following three delete the full directory tree whose root is specified by path
+            shutil.rmtree(path)
+            os.makedirs(path)
+            os.removedirs(path)
 
 
 def make_raw_data_path(crawl: str):

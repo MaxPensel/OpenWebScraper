@@ -20,7 +20,7 @@ from core.QtExtensions import SimpleYesNoMessage, SimpleErrorInfo, SimpleMessage
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader, Settings
 from modules.crawler import filemanager
-from modules.crawler.model import CrawlSpecification
+from modules.crawler.model import CrawlSpecification, CrawlMode
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
@@ -99,12 +99,15 @@ class CrawlerController:
                                            filemanager.save_blacklist_content,
                                            filemanager.get_blacklist_filenames))
 
+        self._view.continue_crawl_button.clicked.connect(self.continue_crawl)
         self._view.crawl_button.clicked.connect(self.start_crawl)
 
         # trigger model updates
         self._view.crawl_specification_view.url_area.textChanged.connect(self.update_model)
         self._view.crawl_specification_view.blacklist_area.textChanged.connect(self.update_model)
         self._view.crawl_name_input.textChanged.connect(self.update_model)
+
+        self._view.continue_crawl_combobox.currentIndexChanged.connect(self.select_unfinished_crawl)
 
     def setup_completion(self):
         url_model = QStringListModel()
@@ -122,6 +125,10 @@ class CrawlerController:
         self._view.crawl_specification_view.blacklist_input.setCompleter(blacklist_completer)
 
     @staticmethod
+    def reset_combobox(combobox: QComboBox):
+        combobox.setCurrentIndex(0)
+
+    @staticmethod
     def saturate_combobox(combobox: QComboBox, items, include_empty=True):
         for i in range(combobox.count()):
             combobox.removeItem(0)
@@ -134,7 +141,6 @@ class CrawlerController:
         def combobox_connector(index):
             if index > 0:  # index 0 should always be empty option, do not load content for that (or index < 0)
                 filename = combobox.itemText(index)
-
                 content = content_loader(filename)
                 text_area.setPlainText(content)
                 input_field.setText(filename)
@@ -165,10 +171,17 @@ class CrawlerController:
             combobox.setCurrentIndex(combobox.findText(filename, flags=Qt.MatchExactly))
         return save_button_connector
 
-    def update_view(self):
-        self._view.crawl_name_input.setDisplayText(self.crawl_specification.name)
+    def update_view(self, skip=[]):
+        self._view.crawl_name_input.setText(self.crawl_specification.name)
         self._view.crawl_specification_view.url_area.setPlainText("\n".join(self.crawl_specification.urls))
         self._view.crawl_specification_view.blacklist_area.setPlainText("\n".join(self.crawl_specification.blacklist))
+
+        if self._view.crawl_specification_view.url_select not in skip:
+            CrawlerController.reset_combobox(self._view.crawl_specification_view.url_select)
+        if self._view.crawl_specification_view.blacklist_select not in skip:
+            CrawlerController.reset_combobox(self._view.crawl_specification_view.blacklist_select)
+        if self._view.continue_crawl_combobox not in skip:
+            CrawlerController.reset_combobox(self._view.continue_crawl_combobox)
 
     def update_model(self):
         # eventually we could enforce urls and blacklist to be sets instead of lists here
@@ -178,9 +191,44 @@ class CrawlerController:
                     urls=self._view.crawl_specification_view.url_area.toPlainText().splitlines(),
                     blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines(),
                     xpaths=["//p", "//td"])
-        LOG.info("Crawl specification model updated.")
+        LOG.debug("Crawl specification model updated.")  # this message is triggered very often
+
+    def select_unfinished_crawl(self):
+        # load crawl
+        settings_filename = self._view.continue_crawl_combobox.currentText()
+        if settings_filename:
+            self.crawl_specification = filemanager.load_running_crawl_settings(settings_filename)
+            self.update_view(skip=[self._view.continue_crawl_combobox])
+
+    def continue_crawl(self):
+        if self._view.continue_crawl_combobox.currentIndex() == 0:
+            LOG.error("No crawl to be continued is selected.")
+            return
+        msg = SimpleMessageBox("Attention",
+                               "Are you sure that the crawl '{0}' is not running anymore?"
+                               .format(self.crawl_specification.name),
+                               details="Check your task manager (or Alt+Tab) for any console-type windows, perhaps "
+                                       "your crawl is still being executed. If you are sure that the process has "
+                                       "stopped, you can continue it now.",
+                               icon=QMessageBox.Warning)
+        cont = msg.addButton("Continue Crawl", QMessageBox.ActionRole)
+        msg.addButton("Cancel", QMessageBox.RejectRole)
+        msg.exec()
+        pressed = msg.clickedButton()
+        if pressed == cont:
+            LOG.info("Setting up to continue an unfinished crawl ...")
+            self.crawl_specification.mode = CrawlMode.CONTINUE
+            filemanager.save_crawl_settings(self.crawl_specification.name, self.crawl_specification)
+
+            settings_path = filemanager.get_path_to_run_spec(self.crawl_specification.name)
+
+            LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
+            start_scrapy(settings_path)
+            self._view.continue_crawl_combobox.removeItem(self._view.continue_crawl_combobox.currentIndex())
+            self.update_view()
 
     def start_crawl(self):
+        LOG.info("Pre-flight checks for starting a new crawl ...")
         if not self.crawl_specification.name:
             msg = SimpleErrorInfo("Error", "Your crawl must have a name.")
             msg.exec()
@@ -191,8 +239,8 @@ class CrawlerController:
                                    "There is still an unfinished crawl by the name '{0}'."
                                    .format(self.crawl_specification.name),
                                    details="It is recommended to use a different name. If you are sure that this "
-                                           "crawl is not running anymore you can also restart it with its original "
-                                           "settings. ",
+                                           "crawl is not running anymore you can also fully restart it with its "
+                                           "original settings or use the continue crawl feature.",
                                    icon=QMessageBox.Warning)
             restart = msg.addButton("Restart Crawl", QMessageBox.ActionRole)
             msg.addButton("Cancel", QMessageBox.RejectRole)
@@ -237,27 +285,9 @@ class CrawlerController:
             msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
             msg.exec()
             return
-
-        LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
-        python_exe = os.path.abspath(Settings().python)
-        LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
-        try:
-            if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-                subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
-                                 stdout=sys.stdout,
-                                 shell=True,
-                                 start_new_session=True,
-                                 cwd="modules/crawler/",
-                                 creationflags=WindowsCreationFlags.DETACHED_PROCESS)
-            else:
-                subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
-                                 stdout=sys.stdout,
-                                 shell=True,
-                                 start_new_session=True,
-                                 cwd="modules/crawler/",
-                                 close_fds=True)
-        except Exception as exc:
-            LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+        if settings_path != "Cancelled":
+            LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
+            start_scrapy(settings_path)
 
     def setup_crawl(self, restart_crawl=False):
         if not restart_crawl:
@@ -266,8 +296,7 @@ class CrawlerController:
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"
                                          .format(self.crawl_specification.name))
                 if not msg.is_confirmed():
-                    return None
-
+                    return "Cancelled"
 
             return filemanager.save_crawl_settings(self.crawl_specification.name, self.crawl_specification)
         else:
@@ -286,3 +315,25 @@ class CrawlerController:
                 else:
                     urls.append(line)
         return lines, invalid, urls
+
+
+def start_scrapy(settings_path):
+    python_exe = os.path.abspath(Settings().python)
+    LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
+    try:
+        if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
+            subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+                             stdout=sys.stdout,
+                             shell=True,
+                             start_new_session=True,
+                             cwd="modules/crawler/",
+                             creationflags=WindowsCreationFlags.DETACHED_PROCESS)
+        else:
+            subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+                             stdout=sys.stdout,
+                             shell=True,
+                             start_new_session=True,
+                             cwd="modules/crawler/",
+                             close_fds=True)
+    except Exception as exc:
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
