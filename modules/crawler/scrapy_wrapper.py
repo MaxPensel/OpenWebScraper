@@ -181,9 +181,7 @@ def create_spider(settings, start_url, crawler_name):
         def handle_html(self, response):
             items = []
 
-            scraping_paths = ["//p", "//td"]
-
-            for xp in scraping_paths:
+            for xp in self.crawl_settings.xpaths:
                 paragraphs = response.xpath(xp)
                 for par in paragraphs:
                     par_content = "".join(par.xpath(".//text()").extract())
