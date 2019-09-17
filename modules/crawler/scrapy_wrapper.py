@@ -17,11 +17,7 @@ if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
 
-import shutil
-
 import pandas
-import json
-import traceback
 import scrapy
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors.lxmlhtml import LxmlLinkExtractor
@@ -79,13 +75,13 @@ def load_settings(settings_path) -> CrawlSpecification:
 
         # determine behaviour w.r.t. mode
         if settings.mode == CrawlMode.NEW:
-            filemanager.delete_and_clean(filemanager.get_crawl_path(settings.name))
+            filemanager.remove_crawl_content(settings.name)
         elif settings.mode == CrawlMode.CONTINUE:
             MLOG.info("Determining incomplete/non-existent data files to continue crawling.")
             datafiles = filemanager.get_datafiles(settings.name)
             run_with = list()
             for url in settings.urls:
-                fname = url2filename(url)
+                fname = filemanager.url2filename(url)
                 if (fname + filemanager.incomplete_flag) in datafiles:
                     run_with.append(url)
                 elif fname not in datafiles:
@@ -313,9 +309,6 @@ class GenericScrapySettings(Settings):
             })
 
 
-def url2filename(url):
-    return (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
-
 if SETTINGS_PATH is None:
     MLOG.error("No crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
                "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
@@ -347,7 +340,7 @@ if __name__ == '__main__':
     start_urls = list(set(crawl_settings.urls))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
     for url in start_urls:
-        name = url2filename(url)
+        name = filemanager.url2filename(url)
         process.crawl(create_spider(crawl_settings, url, name))
     try:
         process.start()
@@ -358,26 +351,22 @@ if __name__ == '__main__':
     # save LANGSTATS
     filemanager.save_dataframe(crawl_settings.name, LANGSTATS_FILENAME, LANGSTATS)
 
-    crawl_raw_dir = filemanager.get_crawl_raw_path(crawl_settings.name)
-    crawl_dir = filemanager.get_crawl_path(crawl_settings.name)
     stats_df = pandas.DataFrame(columns=["total paragraphs", "unique paragraphs", "unique urls"])
     stats_df.index.name = "url"
     one_incomplete = False
-    for csv in os.listdir(crawl_raw_dir):
+    for csv in filemanager.get_datafiles(crawl_settings.name):
         # As soon as there still is an incomplete file set one_incomplete = True
         one_incomplete = one_incomplete or filemanager.incomplete_flag in csv
-        fullpath = os.path.join(crawl_raw_dir, csv)
         try:
-            df = pandas.read_csv(fullpath, sep=None, engine="python")
-            col = csv.replace(".csv", "")
-            stats_df.at[col, "total paragraphs"] = df.count()["url"]
+            df = filemanager.load_crawl_data(crawl_settings.name, csv, convert=False)
+            stats_df.at[csv, "total paragraphs"] = df.count()["url"]
             if df.empty:
-                stats_df.at[col, "unique paragraphs"] = 0
-                stats_df.at[col, "unique urls"] = 0
+                stats_df.at[csv, "unique paragraphs"] = 0
+                stats_df.at[csv, "unique urls"] = 0
             else:
                 unique = df.nunique()
-                stats_df.at[col, "unique paragraphs"] = unique["content"]
-                stats_df.at[col, "unique urls"] = unique["url"]
+                stats_df.at[csv, "unique paragraphs"] = unique["content"]
+                stats_df.at[csv, "unique urls"] = unique["url"]
         except Exception as exc:
             stats_df.at[csv.replace(".csv", ""), "total paragraphs"] = "Could not process"
             MLOG.exception("Error while analyzing results. {0}: {1}".format(type(exc).__name__, exc))

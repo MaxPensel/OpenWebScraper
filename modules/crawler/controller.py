@@ -220,7 +220,7 @@ class CrawlerController:
             self.crawl_specification.mode = CrawlMode.CONTINUE
             filemanager.save_crawl_settings(self.crawl_specification.name, self.crawl_specification)
 
-            settings_path = filemanager.get_path_to_run_spec(self.crawl_specification.name)
+            settings_path = filemanager.get_running_specification_path(self.crawl_specification.name)
 
             LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
             start_scrapy(settings_path)
@@ -300,7 +300,7 @@ class CrawlerController:
 
             return filemanager.save_crawl_settings(self.crawl_specification.name, self.crawl_specification)
         else:
-            return filemanager.get_path_to_run_spec(self.crawl_specification.name)
+            return filemanager.get_running_specification_path(self.crawl_specification.name)
 
     def detect_valid_urls(self):
         lines = 0
