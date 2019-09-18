@@ -13,7 +13,7 @@ import subprocess
 import validators
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox, QComboBox
+from PyQt5.QtWidgets import QCompleter, QErrorMessage, QMessageBox, QComboBox, QLineEdit
 
 import core
 from core.QtExtensions import SimpleYesNoMessage, SimpleErrorInfo, SimpleMessageBox
@@ -37,6 +37,15 @@ class CrawlerController:
 
     def __init__(self, view):
         self._view = view
+        self.resettables = [view.crawl_specification_view.url_select,
+                            view.crawl_specification_view.blacklist_select,
+                            view.crawl_specification_view.url_input,
+                            view.crawl_specification_view.blacklist_input,
+                            view.prev_crawl_combobox,
+                            view.continue_crawl_combobox,
+                            view.crawl_name_input
+                            ]
+
         self.crawl_specification = CrawlSpecification()
 
         self.init_elements()
@@ -79,7 +88,8 @@ class CrawlerController:
             self.load_file_to_editor(self._view.crawl_specification_view.url_select,
                                      filemanager.get_url_content,
                                      self._view.crawl_specification_view.url_area,
-                                     self._view.crawl_specification_view.url_input))
+                                     self._view.crawl_specification_view.url_input,
+                                     self))
         self._view.crawl_specification_view.url_save.clicked.connect(
             self.build_save_file_connector(self._view.crawl_specification_view.url_input,
                                            self._view.crawl_specification_view.url_select,
@@ -91,7 +101,8 @@ class CrawlerController:
             self.load_file_to_editor(self._view.crawl_specification_view.blacklist_select,
                                      filemanager.get_blacklist_content,
                                      self._view.crawl_specification_view.blacklist_area,
-                                     self._view.crawl_specification_view.blacklist_input))
+                                     self._view.crawl_specification_view.blacklist_input,
+                                     self))
         self._view.crawl_specification_view.blacklist_save.clicked.connect(
             self.build_save_file_connector(self._view.crawl_specification_view.blacklist_input,
                                            self._view.crawl_specification_view.blacklist_select,
@@ -137,13 +148,17 @@ class CrawlerController:
         combobox.addItems(items)
 
     @staticmethod
-    def load_file_to_editor(combobox, content_loader, text_area, input_field):
+    def load_file_to_editor(combobox, content_loader, text_area, input_field, controller):
         def combobox_connector(index):
             if index > 0:  # index 0 should always be empty option, do not load content for that (or index < 0)
                 filename = combobox.itemText(index)
                 content = content_loader(filename)
                 text_area.setPlainText(content)
                 input_field.setText(filename)
+                controller.reset_view(do=[controller._view.prev_crawl_combobox,
+                                          controller._view.continue_crawl_combobox,
+                                          controller._view.crawl_name_input
+                                              ])
         return combobox_connector
 
     @staticmethod
@@ -171,17 +186,19 @@ class CrawlerController:
             combobox.setCurrentIndex(combobox.findText(filename, flags=Qt.MatchExactly))
         return save_button_connector
 
-    def update_view(self, skip=[]):
+    def update_view(self):
         self._view.crawl_name_input.setText(self.crawl_specification.name)
         self._view.crawl_specification_view.url_area.setPlainText("\n".join(self.crawl_specification.urls))
         self._view.crawl_specification_view.blacklist_area.setPlainText("\n".join(self.crawl_specification.blacklist))
 
-        if self._view.crawl_specification_view.url_select not in skip:
-            CrawlerController.reset_combobox(self._view.crawl_specification_view.url_select)
-        if self._view.crawl_specification_view.blacklist_select not in skip:
-            CrawlerController.reset_combobox(self._view.crawl_specification_view.blacklist_select)
-        if self._view.continue_crawl_combobox not in skip:
-            CrawlerController.reset_combobox(self._view.continue_crawl_combobox)
+    def reset_view(self, do_not=[], do=[]):
+        if do:
+            for elem in do:
+                reset_element(elem)
+        else:
+            for elem in self.resettables:
+                if elem not in do_not:
+                    reset_element(elem)
 
     def update_model(self):
         # eventually we could enforce urls and blacklist to be sets instead of lists here
@@ -198,7 +215,8 @@ class CrawlerController:
         settings_filename = self._view.continue_crawl_combobox.currentText()
         if settings_filename:
             self.crawl_specification = filemanager.load_running_crawl_settings(settings_filename)
-            self.update_view(skip=[self._view.continue_crawl_combobox])
+            self.reset_view(do_not=[self._view.continue_crawl_combobox])
+            self.update_view()
 
     def continue_crawl(self):
         if self._view.continue_crawl_combobox.currentIndex() == 0:
@@ -337,3 +355,12 @@ def start_scrapy(settings_path):
                              close_fds=True)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+
+
+def reset_element(element):
+    if isinstance(element, QComboBox):
+        element.setCurrentIndex(0)
+    elif isinstance(element, QLineEdit):
+        element.setText("")
+    else:
+        LOG.warning("No routine for resetting element of type {0}".format(type(element)))
