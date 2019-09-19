@@ -220,7 +220,9 @@ class CrawlerController:
 
     def continue_crawl(self):
         if self._view.continue_crawl_combobox.currentIndex() == 0:
-            LOG.error("No crawl to be continued is selected.")
+            msg = SimpleErrorInfo("Error", "No crawl selected for continuation.")
+            msg.exec()
+            LOG.error("No crawl selected for continuation.")
             return
         msg = SimpleMessageBox("Attention",
                                "Are you sure that the crawl '{0}' is not running anymore?"
