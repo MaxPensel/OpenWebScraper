@@ -7,6 +7,7 @@ For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPi
 
 @author: Maximilian Pensel
 """
+import importlib
 import logging
 import sys
 import os
@@ -33,6 +34,7 @@ from textract.exceptions import CommandLineError
 import core
 from core.Workspace import WorkspaceManager, LOG_DIR as WS_LOG_DIR
 from modules.crawler import filemanager
+
 
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
 LANGSTATS_FILENAME = "languages"
@@ -114,6 +116,11 @@ def create_spider(settings, start_url, crawler_name):
     class GenericCrawlSpider(CrawlSpider):
 
         crawl_settings = settings
+        # crawl_settings["parser"] = "modules.crawler.scrapy.parsers.ParagraphParser"
+        # load parser locations from settings (?)
+        parser_mod = importlib.import_module("modules.crawler.scrapy.parsers")
+        parser_class = getattr(parser_mod, "ParagraphParser")  # instantiate parser, later depending on crawl_settings
+        parser = parser_class(xpaths=crawl_settings.xpaths, keep_on_lang_error=True)
 
         domain = urlparse(start_url).netloc
 
@@ -140,8 +147,11 @@ def create_spider(settings, start_url, crawler_name):
             Rule(LxmlLinkExtractor(  # deny=(r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?"),
                                      # deny=blacklistloader.load_blacklist(),  # Blacklist feature not yet implemented
                                     allow=start_url+".*",  # crawl only links behind the given start-url
-                                    deny_extensions=denied_extensions), callback='parse_item', follow=True)
+                                    deny_extensions=denied_extensions), callback=parser.parse, follow=True)
         ]
+
+        # ensure that start_urls are also parsed
+        parse_start_url = parser.parse
 
         def __init__(self):
             super().__init__()
@@ -155,110 +165,6 @@ def create_spider(settings, start_url, crawler_name):
             for hand in self.s_log.handlers:
                 self.logger.logger.addHandler(hand)
             self.s_log.info("[__init__] - Crawlspider logger setup finished.")
-
-            # setup empty stats for accepted languages
-            for lang in ACCEPTED_LANG:
-                LANGSTATS.at[start_url, lang] = 0
-
-        def parse_item(self, response):
-            self.s_log.info("[parse_item] - Processing {0}".format(response.url))
-
-            ct = str(response.headers.get(b"Content-Type", "").lower())
-            if "pdf" in ct:
-                items = self.handle_pdf(response)
-            else:
-                items = self.handle_html(response)
-
-            return items
-
-        # ensure that start_urls are also parsed
-        parse_start_url = parse_item
-
-        def handle_html(self, response):
-            items = []
-
-            for xp in self.crawl_settings.xpaths:
-                paragraphs = response.xpath(xp)
-                for par in paragraphs:
-                    par_content = "".join(par.xpath(".//text()").extract())
-                    items.extend(self.process_paragraph(response, par_content))
-
-            return items
-
-        def handle_pdf(self, response):
-            filename = response.url.split('/')[-1]
-            pdf_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings.workspace,
-                                       filemanager.running_crawl_settings_dir,
-                                       "PDF_TMP")
-            txt_tmp_dir = os.path.join(GenericCrawlSpider.crawl_settings.workspace,
-                                       filemanager.running_crawl_settings_dir,
-                                       "TXT_TMP")
-            if not os.path.exists(pdf_tmp_dir):
-                os.makedirs(pdf_tmp_dir)
-            filepath = os.path.join(pdf_tmp_dir, filename)
-
-            with open(filepath, "wb") as pdffile:
-                pdffile.write(response.body)
-
-            try:
-                content = textract.process(filepath)
-            except CommandLineError as exc:  # Catching either ExtensionNotSupported or MissingFileError
-                self.s_log.exception("[handle_pdf] - {0}: {1}".format(type(exc).__name__, exc))
-                return []  # In any case, text extraction failed so no items were parsed
-
-            global DEBUG  # fetch DEBUG flag
-            if DEBUG:  # Only store intermediary .txt conversion of pdf in DEBUG mode
-                if not os.path.exists(txt_tmp_dir):
-                    os.makedirs(txt_tmp_dir)
-                txt_name = filename.replace(".pdf", ".txt")
-                with open(os.path.join(txt_tmp_dir, txt_name), "wb") as txt_file:
-                    txt_file.write(content)
-
-            content = content.decode("utf-8")  # convert byte string to utf-8 string
-            items = []
-            for par_content in content.splitlines():
-                items.extend(self.process_paragraph(response, par_content))
-
-            # Cleanup temporary pdf directory, unless in debug mode
-            if not DEBUG:
-                filemanager.delete_and_clean(pdf_tmp_dir, ignore_empty=True)
-
-            return items
-
-        def process_paragraph(self, response, par_content):
-            items = []
-
-            if par_content.strip():  # immediately ignore empty or only whitespace paragraphs
-                try:
-                    lang = detect(par_content)
-                    if lang in ACCEPTED_LANG:
-                        items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
-                    self.register_paragraph_language(lang)
-                except LangDetectException as exc:
-                    self.s_log.error("[process_paragraph] - "
-                                     "{0} on langdetect input '{1}'. Being careful and storing the value anyway!"
-                                     .format(exc, par_content))
-                    # Storing the value if language detection has failed. This behaviour remains to be evaluated.
-                    # Of course repeating code is ugly, but language detection works the same with pdf and html,
-                    # so being outsourced in the future anyway.
-                    items.append(self.make_scrapy_item(response.url, par_content, response.meta["depth"]))
-                    self.register_paragraph_language("Not enough features")
-
-            return items
-
-        @staticmethod
-        def register_paragraph_language(lang):
-            if lang not in LANGSTATS.columns:
-                LANGSTATS.insert(len(LANGSTATS.columns), lang, 0, True)
-            LANGSTATS.at[start_url, lang] += 1
-
-        @staticmethod
-        def make_scrapy_item(url, content, depth):
-            item = WebsiteParagraph()
-            item["url"] = url
-            item["content"] = content
-            item["depth"] = depth
-            return item
 
     return GenericCrawlSpider
 
