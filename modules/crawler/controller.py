@@ -46,7 +46,9 @@ class CrawlerController:
                             view.crawl_name_input
                             ]
 
-        self.crawl_specification = CrawlSpecification()
+        # for now, init with default pipeline
+        self.crawl_specification = CrawlSpecification(
+            pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300})
 
         self.init_elements()
 

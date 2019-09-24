@@ -28,6 +28,7 @@ class CrawlSpecification:
                  urls: [str] = [],
                  blacklist: [str] = [],
                  xpaths: [str] = [],
+                 pipelines: {} = {},
                  mode: str = CrawlMode.NEW):
         self.name = name
         self.workspace = workspace
@@ -35,6 +36,7 @@ class CrawlSpecification:
         self.blacklist = blacklist
         self.xpaths = xpaths
         self.mode = mode
+        self.pipelines = pipelines
 
     def update(self,
                name: str = None,
@@ -42,6 +44,7 @@ class CrawlSpecification:
                urls: [str] = [],
                blacklist: [str] = [],
                xpaths: [str] = [],
+               pipelines: {} = [],
                mode: str = None):
         if name:
             self.name = name
@@ -53,6 +56,8 @@ class CrawlSpecification:
             self.blacklist = blacklist
         if xpaths:
             self.xpaths = xpaths
+        if pipelines:
+            self.pipelines = pipelines
         if isinstance(mode, str) and mode in CrawlMode.__dict__.values():  # only update valid modes
             self.mode = mode
         else:

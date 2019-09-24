@@ -25,11 +25,7 @@ from scrapy.linkextractors.lxmlhtml import LxmlLinkExtractor
 from scrapy.crawler import CrawlerProcess
 from urllib.parse import urlparse
 from scrapy.settings import Settings
-from langdetect.lang_detect_exception import LangDetectException
-from langdetect import detect
 from langdetect import DetectorFactory
-import textract
-from textract.exceptions import CommandLineError
 
 import core
 from core.Workspace import WorkspaceManager, LOG_DIR as WS_LOG_DIR
@@ -169,42 +165,10 @@ def create_spider(settings, start_url, crawler_name):
     return GenericCrawlSpider
 
 
-class GenericCrawlPipeline(object):
-
-    def process_item(self, item, spider):
-        url = item['url']
-        content = item['content']
-        df_item = dict()
-        for key in item:
-            # df_item = {"url": [url], "content": [content]}
-            df_item[key] = [item[key]]
-
-        domain = urlparse(url).netloc
-        if domain in spider.allowed_domains:
-            spider.s_log.info("[process_item] - Adding content for {0} to {1}".format(str(url), str(spider.name)))
-            # self.dataframes[domain] = self.dataframes[domain].append(pd.DataFrame.from_dict(df_item))
-            filemanager.add_to_csv(spider.crawl_settings.name, spider.name, df_item)
-
-        return item
-
-    def open_spider(self, spider):
-        spider.s_log.info(" vvvvvvvvvvvvvvvvvvvvvvvvvvvv OPENING SPIDER {0} vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
-                          .format(spider.name))
-        filemanager.make_raw_data_path(spider.crawl_settings.name)
-        for domain in spider.allowed_domains:
-            filemanager.create_csv(spider.crawl_settings.name, spider.name, True)
-
-    def close_spider(self, spider):
-        spider.s_log.info(" ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CLOSING SPIDER {0} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-                          .format(spider.name))
-        filemanager.complete_csv(spider.crawl_settings.name, spider.name)
-
-
 class GenericScrapySettings(Settings):
 
     def __init__(self):
         super().__init__(values={
-            "ITEM_PIPELINES": {"scrapy_wrapper.GenericCrawlPipeline": 300},
             "DEPTH_LIMIT": 5,
             "FEED_EXPORT_ENCODING": "utf-8",
             "LOG_LEVEL": "WARNING",
@@ -240,6 +204,7 @@ if __name__ == '__main__':
     scrapy_log_path = os.path.join(crawl_log_path,
                                    "scrapy.log")
 
+    scrapy_settings.set("ITEM_PIPELINES", crawl_settings.pipelines)
     scrapy_settings.set("LOG_FILE", scrapy_log_path)
 
     process = CrawlerProcess(settings=scrapy_settings)
