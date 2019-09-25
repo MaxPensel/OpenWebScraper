@@ -23,16 +23,17 @@ A Python3.7 environment is required and it is recommended to obtain this through
 1. Install [Anaconda](https://www.anaconda.com/distribution/#download-section) with python3.7.
 2. Download and install Visual Studio Buildtools [here](https://visualstudio.microsoft.com/de/downloads/). (Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools)
 3. Get the SpiderGUI sources.
-..* Either Download [master.zip](https://github.com/MaxPensel/SpiderGUI/archive/master.zip) and unpack in your chosen installation directory.
+  * Either Download [master.zip](https://github.com/MaxPensel/SpiderGUI/archive/master.zip) and unpack in your chosen installation directory.
 __OR__
-..* Install git and clone this repository. (This method is recommended to easily stay up to date with the development)
+  * Install git and clone this repository. (This method is recommended to easily stay up to date with the development)
 ```ShellSession
 git clone git@github.com:MaxPensel/SpiderGUI.git
 ```
 4. Open up the anaconda prompt and navigate to your installation directory. Execute 
 ```ShellSession
-pip install -r requirements.txt
+./Install.bat
 ```
+Even though executing batch files works with double-click as well, an activated python environment is required for this script to work, e.g. the anaconda base environment.
 
 # Documentation
 
@@ -54,7 +55,7 @@ Components such as the parsing of incoming http-responses and further processing
 
 
 
-```
+```JSON
 {
     "blacklist": [
          "http://www.example.com/do-not-crawl-this"
