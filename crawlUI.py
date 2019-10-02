@@ -8,10 +8,8 @@ import importlib
 import sys
 import os
 import json
-
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QWidget, QToolBar, QPushButton, QSizePolicy, \
-    QTableWidget, QTableWidgetItem, QAction, QFileDialog
+from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QSizePolicy, \
+    QTableWidget, QTableWidgetItem, QAction, QFileDialog, QWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
