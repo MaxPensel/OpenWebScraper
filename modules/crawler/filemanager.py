@@ -107,6 +107,18 @@ def get_datafiles(crawl_name):
     return __get_filenames_of_type(".csv", _get_crawl_raw_path(crawl_name))
 
 
+def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
+    datafiles = get_datafiles(crawl_name)
+    incomplete = list()
+    for url in urls:
+        fname = url2filename(url)
+        if (fname + incomplete_flag) in datafiles:
+            incomplete.append(url)
+        elif fname not in datafiles:
+            incomplete.append(url)
+    return incomplete
+
+
 # get file contents
 
 def get_url_content(filename):
@@ -129,7 +141,7 @@ def load_running_crawl_settings(name):
     return spec
 
 
-def load_crawl_data(crawl:str, url:str, convert:bool = True):
+def load_crawl_data(crawl: str, url: str, convert: bool = True):
     if convert:
         url = url2filename(url)
     fullpath = os.path.join(_get_crawl_raw_path(crawl), url + ".csv")
@@ -253,7 +265,7 @@ def delete_and_clean(path, ignore_empty=False):
             os.removedirs(path)
 
 
-def remove_crawl_content(crawl:str):
+def remove_crawl_content(crawl: str):
     delete_and_clean(_get_crawl_path(crawl))
 
 

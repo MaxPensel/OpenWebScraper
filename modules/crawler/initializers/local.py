@@ -14,7 +14,7 @@ from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMes
 from crawlUI import Settings
 from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls
 from modules.crawler.controller import CrawlerController
-from modules.crawler.model import CrawlMode
+from modules.crawler.model import CrawlSpecification
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
@@ -117,7 +117,8 @@ class LocalCrawlController(core.ViewController):
         self._view.continue_crawl_combobox.currentIndexChanged.connect(self.select_unfinished_crawl)
 
     def update_model(self):
-        self.master_cnt.crawl_specification.update(name=self._view.crawl_name_input.displayText())
+        if self.master_cnt:
+            self.master_cnt.crawl_specification.update(name=self._view.crawl_name_input.displayText())
 
     def update_view(self):
         self._view.crawl_name_input.setText(self.master_cnt.crawl_specification.name)
@@ -128,12 +129,15 @@ class LocalCrawlController(core.ViewController):
         if settings_filename:
             self.master_cnt.crawl_specification = filemanager.load_running_crawl_settings(settings_filename)
             self.reset_view(do_not=[self._view.continue_crawl_combobox])
+            self.master_cnt.reset_view()
             if self.master_cnt:
                 self.master_cnt.update_view()
             else:
                 self.update_view()
 
     def continue_crawl(self):
+        spec = self.master_cnt.crawl_specification  # type: CrawlSpecification
+
         if self._view.continue_crawl_combobox.currentIndex() == 0:
             msg = SimpleErrorInfo("Error", "No crawl selected for continuation.")
             msg.exec()
@@ -141,7 +145,7 @@ class LocalCrawlController(core.ViewController):
             return
         msg = SimpleMessageBox("Attention",
                                "Are you sure that the crawl '{0}' is not running anymore?"
-                               .format(self.master_cnt.crawl_specification.name),
+                               .format(spec.name),
                                details="Check your task manager (or Alt+Tab) for any console-type windows, perhaps "
                                        "your crawl is still being executed. If you are sure that the process has "
                                        "stopped, you can continue it now.",
@@ -152,10 +156,15 @@ class LocalCrawlController(core.ViewController):
         pressed = msg.clickedButton()
         if pressed == cont:
             LOG.info("Setting up to continue an unfinished crawl ...")
-            self.master_cnt.crawl_specification.mode = CrawlMode.CONTINUE
-            filemanager.save_crawl_settings(self.master_cnt.crawl_specification.name, self.master_cnt.crawl_specification)
 
-            settings_path = filemanager.get_running_specification_path(self.master_cnt.crawl_specification.name)
+            LOG.info("Determining incomplete urls in crawl {0}".format(spec.name))
+            incomplete = filemanager.get_incomplete_urls(spec.name, spec.urls)
+            LOG.info("Found {0} out of {1} incomplete urls: {2}".format(len(incomplete), len(spec.urls), incomplete))
+            spec.update(urls=incomplete)
+
+            filemanager.save_crawl_settings(spec.name, spec)
+
+            settings_path = filemanager.get_running_specification_path(spec.name)
 
             LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
             start_scrapy(settings_path)
@@ -233,7 +242,8 @@ class LocalCrawlController(core.ViewController):
                 if not msg.is_confirmed():
                     return "Cancelled"
 
-            return filemanager.save_crawl_settings(self.master_cnt.crawl_specification.name, self.master_cnt.crawl_specification)
+            return filemanager.save_crawl_settings(self.master_cnt.crawl_specification.name,
+                                                   self.master_cnt.crawl_specification)
         else:
             return filemanager.get_running_specification_path(self.master_cnt.crawl_specification.name)
 

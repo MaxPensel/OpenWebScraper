@@ -70,42 +70,12 @@ def load_settings(settings_path) -> CrawlSpecification:
 
         # Load the WorkspaceManager once, so that singleton is initialized to the correct workspace
         WorkspaceManager(settings.workspace)
-
-        # determine behaviour w.r.t. mode
-        if settings.mode == CrawlMode.NEW:
-            filemanager.remove_crawl_content(settings.name)
-        elif settings.mode == CrawlMode.CONTINUE:
-            MLOG.info("Determining incomplete/non-existent data files to continue crawling.")
-            datafiles = filemanager.get_datafiles(settings.name)
-            run_with = list()
-            for url in settings.urls:
-                fname = filemanager.url2filename(url)
-                if (fname + filemanager.incomplete_flag) in datafiles:
-                    run_with.append(url)
-                elif fname not in datafiles:
-                    run_with.append(url)
-            MLOG.info("Crawl continuation detected the following {0} out of {1} urls to be incomplete or missing: {2}"
-                      .format(len(run_with), len(settings.urls), run_with))
-            settings.update(urls=run_with)
-        elif settings.mode == CrawlMode.RECRAWL_EMPTY:
-            # load all datafiles, find empty dataframes and modify settings.url accordingly
-            pass
-
         MLOG.info("Starting crawl with the following settings:\n{0}".format(settings.serialize()))
     except Exception as exc:
         MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return None
 
     return settings
-
-
-class WebsiteParagraph(scrapy.Item):
-    # define the fields for your item here like:
-    url = scrapy.Field()
-    content = scrapy.Field()
-    depth = scrapy.Field()
-
-    pass
 
 
 def create_spider(settings, start_url, crawler_name):
