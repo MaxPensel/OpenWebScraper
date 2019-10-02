@@ -8,7 +8,8 @@ import core
 
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
-class CrawlMode():
+
+class CrawlMode:
     # ignore any previous content under that crawl name and start a new crawl
     NEW = "new"
 
@@ -25,26 +26,43 @@ class CrawlSpecification:
     def __init__(self,
                  name: str = None,
                  workspace: str = None,
-                 urls: [str] = [],
-                 blacklist: [str] = [],
-                 xpaths: [str] = [],
-                 pipelines: {} = {},
+                 urls: [str] = None,
+                 blacklist: [str] = None,
+                 xpaths: [str] = None,
+                 pipelines: {} = None,
                  mode: str = CrawlMode.NEW):
+
         self.name = name
         self.workspace = workspace
+
+        if urls is None:
+            urls = list()
         self.urls = urls
+
+        if blacklist is None:
+            blacklist = list()
         self.blacklist = blacklist
+
+        if xpaths is None:
+            xpaths = list()
         self.xpaths = xpaths
+
+        if mode is None:
+            mode = CrawlMode.NEW
         self.mode = mode
-        self.pipelines = pipelines
+        # if pipelines is None:
+        #     pipelines = dict()
+        # self.pipelines = pipelines
+        # fixing this for now:
+        self.pipelines = {"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300}
 
     def update(self,
                name: str = None,
                workspace: str = None,
-               urls: [str] = [],
-               blacklist: [str] = [],
-               xpaths: [str] = [],
-               pipelines: {} = [],
+               urls: [str] = None,
+               blacklist: [str] = None,
+               xpaths: [str] = None,
+               pipelines: {} = None,
                mode: str = None):
         if name:
             self.name = name

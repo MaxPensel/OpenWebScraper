@@ -2,7 +2,7 @@ import os
 import sys
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
 
-MASTER_LOG = "master.log"
+from core import QtExtensions
 
 
 def simple_logger(modname="core", file_path=None, console_level=INFO, file_level=INFO) -> Logger:
@@ -44,3 +44,32 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
         logger.addHandler(log_fh)
 
     return logger
+
+
+MASTER_LOG = "master.log"
+MASTER_LOGGER = simple_logger(file_path=MASTER_LOG)
+
+
+class ViewController:
+
+    def __init__(self, view):
+        self._view = view
+        self.resettables = []
+
+    def reset_view(self, do_not=None, do=None):
+        if do_not is None:
+            do_not = list()
+
+        if do:
+            for elem in do:
+                QtExtensions.reset_element(elem)
+        else:
+            for elem in self.resettables:
+                if elem not in do_not:
+                    QtExtensions.reset_element(elem)
+
+    def update_view(self):
+        pass
+
+    def update_model(self):
+        pass

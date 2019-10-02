@@ -6,12 +6,14 @@ Created on 27.05.2019
 from PyQt5.QtGui import QCursor
 from PyQt5.Qt import Qt
 
-from core.QtExtensions import VerticalContainer, FileOpenPushButton
+from core.QtExtensions import VerticalContainer
 from modules.crawler.controller import CrawlerController
-from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QPushButton, QSplitter, \
-    QWidget, QCompleter, QComboBox, QGroupBox, QVBoxLayout
+from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QPushButton, QSplitter, \
+    QComboBox, QGroupBox, QVBoxLayout
 from PyQt5.QtWidgets import QHBoxLayout
 import qtawesome
+
+from modules.crawler.initializers.local import LocalCrawlView
 
 
 class CrawlerWidget(VerticalContainer):
@@ -21,53 +23,11 @@ class CrawlerWidget(VerticalContainer):
         super().__init__()
 
         self.crawl_specification_view = CrawlSpecificationView()
-
-        # ### Different options for initiating a crawl
-
-        # reload previous crawl
-        self.prev_crawl_combobox = QComboBox()
-        self.prev_crawl_load = QPushButton("Load Crawl Settings")
-
-        prev_crawl_layout = QVBoxLayout()
-        prev_crawl_layout.addWidget(self.prev_crawl_combobox)
-        prev_crawl_layout.addWidget(self.prev_crawl_load)
-
-        self.prev_crawl_groupbox = QGroupBox("Load Previous Crawl")
-        self.prev_crawl_groupbox.setLayout(prev_crawl_layout)
-
-        # continue unfinished crawl
-        self.continue_crawl_combobox = QComboBox()
-        self.continue_crawl_button = QPushButton("Continue Crawl")
-
-        continue_crawl_layout = QVBoxLayout()
-        continue_crawl_layout.addWidget(self.continue_crawl_combobox)
-        continue_crawl_layout.addWidget(self.continue_crawl_button)
-
-        continue_crawl_groupbox = QGroupBox("Continue Unfinished Crawl")
-        continue_crawl_groupbox.setLayout(continue_crawl_layout)
-
-        # new crawl
-        self.crawl_name_input = QLineEdit()
-        self.crawl_name_input.setPlaceholderText("Crawl name")
-
-        self.crawl_button = QPushButton("Start New Crawl")
-
-        new_crawl_layout = QVBoxLayout()
-        new_crawl_layout.addWidget(self.crawl_name_input)
-        new_crawl_layout.addWidget(self.crawl_button)
-
-        new_crawl_input_group = QGroupBox("New Crawl")
-        new_crawl_input_group.setLayout(new_crawl_layout)
-
-        # put together crawl starting options
-        crawl_starting_options_layout = QHBoxLayout()
-        crawl_starting_options_layout.addWidget(self.prev_crawl_groupbox)
-        crawl_starting_options_layout.addWidget(continue_crawl_groupbox)
-        crawl_starting_options_layout.addWidget(new_crawl_input_group)
+        self.crawl_init_view = LocalCrawlView()
 
         # put everything together
         self.addWidget(self.crawl_specification_view)
-        self.addLayout(crawl_starting_options_layout)
+        self.addWidget(self.crawl_init_view)
         
         self.cnt = CrawlerController(self)
 
