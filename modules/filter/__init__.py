@@ -5,5 +5,5 @@ Created on 29.08.2019
 """
 
 TITLE = "Filter"
-MAIN_WIDGET = "modules.filter.view.__init__"
+MAIN_WIDGET = "modules.filter.view.FilterWidget"
 # VERSION = "..."
