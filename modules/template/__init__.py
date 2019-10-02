@@ -13,8 +13,6 @@ Optional fields:
 @author: Maximilian Pensel
 """
 
-from modules.template.view import TemplateWidget
-
 TITLE = "Template"
-MAIN_WIDGET = TemplateWidget
+MAIN_WIDGET = "modules.template.view.TemplateWidget"
 VERSION = "1.1.0"
