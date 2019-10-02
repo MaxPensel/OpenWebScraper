@@ -12,11 +12,11 @@ import logging
 import sys
 import os
 
-from modules.crawler.model import CrawlSpecification, CrawlMode
-
 if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
+
+from modules.crawler.model import CrawlSpecification, CrawlMode
 
 import pandas
 import scrapy
