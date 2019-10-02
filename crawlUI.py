@@ -104,7 +104,7 @@ class MainWidget(QTabWidget):
     
     def register_modules(self, modules: {}):
         for module in modules:
-            self.addTab(module.MAIN_WIDGET(), module.TITLE)
+            self.addTab(getattr(module, "MAIN_WIDGET")(), module.TITLE)
 
     def reload_modules(self, modules: {}):
         for i in range(self.count()):
@@ -185,7 +185,17 @@ class ModLoader:
                     mod.TITLE = modname
                 
                 if hasattr(mod, "MAIN_WIDGET"):
-                    self.modules.append(mod)
+                    widget_path = getattr(mod, "MAIN_WIDGET")
+                    pieces = widget_path.split(".")
+                    view_mod_str = ".".join(pieces[:-1])
+                    view_mod = importlib.import_module(view_mod_str)
+                    setattr(mod, "MAIN_WIDGET", getattr(view_mod, pieces[-1:][0]))
+
+                    # only load the module if MAIN_WIDGET is a QWidget:
+                    if issubclass(getattr(mod, "MAIN_WIDGET"), QWidget):
+                        self.modules.append(mod)
+                    else:
+                        LOG.error("{0} does not reference a class inheriting from QWidget.".format(widget_path))
                 else:
                     raise AttributeError("__init__.py in {0} is missing MAIN_WIDGET attribute".format(modname))
                 
