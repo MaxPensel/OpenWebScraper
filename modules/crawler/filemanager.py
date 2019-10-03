@@ -290,7 +290,7 @@ def complete_csv(crawl: str, domain: str):
     shutil.move(fullpath_inc, fullpath_com)
 
 
-def finalize_crawl(crawl):
+def move_crawl_specification(crawl):
     """
     Move the crawl specification file from running dir to crawl path.
     :param crawl:

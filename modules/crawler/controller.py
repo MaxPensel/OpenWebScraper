@@ -140,8 +140,7 @@ class CrawlerController(core.ViewController):
         self.crawl_specification\
             .update(workspace=WorkspaceManager().get_workspace(),
                     urls=self._view.crawl_specification_view.url_area.toPlainText().splitlines(),
-                    blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines(),
-                    xpaths=["//p", "//td"])
+                    blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines())
         for cnt in self.sub_controllers:
             cnt.update_model()
         LOG.debug("Crawl specification model updated.")  # this message is triggered very often

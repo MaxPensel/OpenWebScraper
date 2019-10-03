@@ -16,10 +16,10 @@ if __name__ == '__main__':
     # make sure the project root is on the PYTHONPATH
     sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
 
-from modules.crawler.model import CrawlSpecification, CrawlMode
+from modules.crawler.scrapy.pipelines import LocalCrawlFinalizer
+from modules.crawler.model import CrawlSpecification
 
 import pandas
-import scrapy
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors.lxmlhtml import LxmlLinkExtractor
 from scrapy.crawler import CrawlerProcess
@@ -33,7 +33,7 @@ from modules.crawler import filemanager
 
 
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
-LANGSTATS_FILENAME = "languages"
+LANGSTATS_ID = "languages"
 LANGSTATS = pandas.DataFrame(columns=ACCEPTED_LANG)
 LANGSTATS.index.name = "url"
 
@@ -81,12 +81,13 @@ def load_settings(settings_path) -> CrawlSpecification:
 def create_spider(settings, start_url, crawler_name):
     class GenericCrawlSpider(CrawlSpider):
 
-        crawl_settings = settings
-        # crawl_settings["parser"] = "modules.crawler.scrapy.parsers.ParagraphParser"
+        crawl_specification = settings
+        # crawl_specification["parser"] = "modules.crawler.scrapy.parsers.ParagraphParser"
         # load parser locations from settings (?)
-        parser_mod = importlib.import_module("modules.crawler.scrapy.parsers")
-        parser_class = getattr(parser_mod, "ParagraphParser")  # instantiate parser, later depending on crawl_settings
-        parser = parser_class(xpaths=crawl_settings.xpaths, keep_on_lang_error=True)
+        # parser_mod = importlib.import_module("modules.crawler.scrapy.parsers")
+        # parser_class = getattr(parser_mod, "ParagraphParser")  # instantiate parser, later depending on crawl_specification
+        parser_class = core.get_class(crawl_specification.parser)
+        parser = parser_class(data=crawl_specification.parser_data)
 
         domain = urlparse(start_url).netloc
 
@@ -104,7 +105,7 @@ def create_spider(settings, start_url, crawler_name):
                              'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
                              )
 
-        # start_urls = parse_urls(filemanager.get_url_content(crawl_settings.urls))
+        # start_urls = parse_urls(filemanager.get_url_content(crawl_specification.urls))
         # allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
 
         # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
@@ -125,7 +126,7 @@ def create_spider(settings, start_url, crawler_name):
             self.s_log = core.simple_logger(modname="crawlspider",
                                             file_path=os.path.join(WorkspaceManager().get_workspace(),
                                                                    WS_LOG_DIR,
-                                                                   self.crawl_settings.name,
+                                                                   self.crawl_specification.name,
                                                                    name + ".log")
                                             )
             for hand in self.s_log.handlers:
@@ -160,59 +161,37 @@ if __name__ == '__main__':
     # setup consistent language detection
     DetectorFactory.seed = 0
 
-    crawl_settings = load_settings(SETTINGS_PATH)
+    crawl_specification = load_settings(SETTINGS_PATH)
 
-    if not crawl_settings:
+    if not crawl_specification:
         MLOG.error("Crawl settings could not be loaded. Exiting scrapy_wrapper.")
         sys.exit(1)
 
     scrapy_settings = GenericScrapySettings()
     crawl_log_path = os.path.join(WorkspaceManager().get_log_path(),
-                                  crawl_settings.name)
+                                  crawl_specification.name)
     if not os.path.exists(crawl_log_path):
         os.makedirs(crawl_log_path, exist_ok=True)
     scrapy_log_path = os.path.join(crawl_log_path,
                                    "scrapy.log")
 
-    scrapy_settings.set("ITEM_PIPELINES", crawl_settings.pipelines)
+    scrapy_settings.set("ITEM_PIPELINES", crawl_specification.pipelines)
     scrapy_settings.set("LOG_FILE", scrapy_log_path)
 
     process = CrawlerProcess(settings=scrapy_settings)
-    start_urls = list(set(crawl_settings.urls))
+    start_urls = list(set(crawl_specification.urls))
     allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
     for url in start_urls:
         name = filemanager.url2filename(url)
-        process.crawl(create_spider(crawl_settings, url, name))
+        process.crawl(create_spider(crawl_specification, url, name))
     try:
         process.start()
     except Exception as exc:
         MLOG.exception("{0}: {1}".format(type(exc).__name__, exc))
 
     # every spider finished, finalize crawl
-    # save LANGSTATS
-    filemanager.save_dataframe(crawl_settings.name, LANGSTATS_FILENAME, LANGSTATS)
-
-    stats_df = pandas.DataFrame(columns=["total paragraphs", "unique paragraphs", "unique urls"])
-    stats_df.index.name = "url"
-    one_incomplete = False
-    for csv in filemanager.get_datafiles(crawl_settings.name):
-        # As soon as there still is an incomplete file set one_incomplete = True
-        one_incomplete = one_incomplete or filemanager.incomplete_flag in csv
-        try:
-            df = filemanager.load_crawl_data(crawl_settings.name, csv, convert=False)
-            stats_df.at[csv, "total paragraphs"] = df.count()["url"]
-            if df.empty:
-                stats_df.at[csv, "unique paragraphs"] = 0
-                stats_df.at[csv, "unique urls"] = 0
-            else:
-                unique = df.nunique()
-                stats_df.at[csv, "unique paragraphs"] = unique["content"]
-                stats_df.at[csv, "unique urls"] = unique["url"]
-        except Exception as exc:
-            stats_df.at[csv.replace(".csv", ""), "total paragraphs"] = "Could not process"
-            MLOG.exception("Error while analyzing results. {0}: {1}".format(type(exc).__name__, exc))
-
-    filemanager.save_dataframe(crawl_settings.name, "stats", stats_df)
-
-    if not one_incomplete and not DEBUG:
-        filemanager.finalize_crawl(crawl_settings.name)
+    for finalizer_path in crawl_specification.finalizers:
+        finalizer = core.get_class(finalizer_path)
+        if finalizer:
+            # somehow pass the collected language statistics from parser
+            finalizer(crawl_specification).finalize_crawl()

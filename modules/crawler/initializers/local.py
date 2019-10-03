@@ -191,7 +191,7 @@ class LocalCrawlController(core.ViewController):
             msg.exec()
             pressed = msg.clickedButton()
             if pressed == restart:
-                settings_path = self.setup_crawl(restart_crawl=True)
+                settings_path = self.setup_crawl(continue_crawl=True)
             else:
                 return
         else:
@@ -229,23 +229,38 @@ class LocalCrawlController(core.ViewController):
             msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
             msg.exec()
             return
-        if settings_path != "Cancelled":
+        if settings_path is not None:
             LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
             start_scrapy(settings_path)
+        else:
+            LOG.error("Something went wrong it crawl specification setup. Not starting scrapy!")
 
-    def setup_crawl(self, restart_crawl=False):
-        if not restart_crawl:
-            if self.master_cnt.crawl_specification.name in filemanager.get_crawlnames():
+    def setup_crawl(self, continue_crawl=False):
+        spec = self.master_cnt.crawl_specification
+
+        if continue_crawl:
+            # check if running specification exists, if so, return its path
+            if spec.name not in filemanager.get_running_crawls():
+                LOG.error("Cannot continue crawl '{0}', no running specification found."
+                          .format(spec.name))
+                return None
+            else:
+                return filemanager.get_running_specification_path(spec.name)
+        else:
+            # setup parser and finalizers; for now this setup is fixed, should be UI configurable in the future
+            spec.update(parser="modules.crawler.scrapy.parsers.ParagraphParser",
+                        parser_data={"xpaths": ["//p", "//td"],
+                                     "keep_on_lang_error": False},
+                        pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},
+                        finalizers=["modules.crawler.scrapy.pipelines.LocalCrawlFinalizer"])
+            if spec.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"
-                                         .format(self.master_cnt.crawl_specification.name))
+                                         .format(spec.name))
                 if not msg.is_confirmed():
-                    return "Cancelled"
+                    return None
 
-            return filemanager.save_crawl_settings(self.master_cnt.crawl_specification.name,
-                                                   self.master_cnt.crawl_specification)
-        else:
-            return filemanager.get_running_specification_path(self.master_cnt.crawl_specification.name)
+            return filemanager.save_crawl_settings(spec.name, spec)
 
 
 def start_scrapy(settings_path):

@@ -16,8 +16,10 @@ class CrawlSpecification:
                  workspace: str = None,
                  urls: [str] = None,
                  blacklist: [str] = None,
-                 xpaths: [str] = None,
-                 pipelines: {} = None):
+                 parser: str = None,
+                 parser_data: {} = None,
+                 pipelines: {} = None,
+                 finalizers: [] = None):
 
         self.name = name
         self.workspace = workspace
@@ -30,24 +32,29 @@ class CrawlSpecification:
             blacklist = list()
         self.blacklist = blacklist
 
-        if xpaths is None:
-            xpaths = list()
-        self.xpaths = xpaths
+        self.parser = parser
 
-        # if pipelines is None:
-        #     pipelines = dict()
-        # self.pipelines = pipelines
-        # fixing this for now:
-        self.pipelines = {"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300}
+        if parser_data is None:
+            parser_data = dict()
+        self.parser_data = parser_data
+
+        if pipelines is None:
+            pipelines = dict()
+        self.pipelines = pipelines
+
+        if finalizers is None:
+            finalizers = list()
+        self.finalizers = finalizers
 
     def update(self,
                name: str = None,
                workspace: str = None,
                urls: [str] = None,
                blacklist: [str] = None,
-               xpaths: [str] = None,
+               parser: str = None,
+               parser_data: {} = None,
                pipelines: {} = None,
-               mode: str = None):
+               finalizers: [] = None):
         if name:
             self.name = name
         if workspace:
@@ -56,10 +63,14 @@ class CrawlSpecification:
             self.urls = urls
         if blacklist:
             self.blacklist = blacklist
-        if xpaths:
-            self.xpaths = xpaths
+        if parser:
+            self.parser = parser
+        if parser_data:
+            self.parser_data = parser_data
         if pipelines:
             self.pipelines = pipelines
+        if finalizers:
+            self.finalizers = finalizers
 
     def serialize(self):
         return json.dumps(self.__dict__, sort_keys=True, indent=4, separators=(',', ': '))
