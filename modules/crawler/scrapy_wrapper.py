@@ -194,4 +194,4 @@ if __name__ == '__main__':
         finalizer = core.get_class(finalizer_path)
         if finalizer:
             # somehow pass the collected language statistics from parser
-            finalizer(crawl_specification).finalize_crawl()
+            finalizer(crawl_specification, crawl_specification.finalizers[finalizer_path]).finalize_crawl()

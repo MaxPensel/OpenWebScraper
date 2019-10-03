@@ -25,7 +25,7 @@ class CrawlFinalizer:
 class LocalCrawlFinalizer(CrawlFinalizer):
     LANGSTATS_ID = "languages"
 
-    def __init__(self, spec: CrawlSpecification):
+    def __init__(self, spec: CrawlSpecification, settings: {}):
         super().__init__(spec)
         self.log = core.simple_logger("LocalCrawlFinalizer", file_path=os.path.join(WorkspaceManager().get_log_path(),
                                                                                     self.crawl_specification.name,
@@ -66,6 +66,22 @@ class LocalCrawlFinalizer(CrawlFinalizer):
 
         if not one_incomplete:  # and not DEBUG:
             filemanager.move_crawl_specification(self.crawl_specification.name)
+
+
+class RemoteCrawlFinalizer(CrawlFinalizer):
+
+    def __init__(self, spec: CrawlSpecification, settings: {}):
+        super().__init__(spec)
+        self.log = core.simple_logger("LocalCrawlFinalizer", file_path=os.path.join(WorkspaceManager().get_log_path(),
+                                                                                    self.crawl_specification.name,
+                                                                                    "scrapy.log"))
+
+    def finalize_crawl(self, data: {} = None):
+        if data is None:
+            data = dict()
+    # TODO: this method is automatically called after the entire crawl has finished, gather the crawl results from
+    #       the workspace (using filemanager) and compose an http request for further processing
+
 
 ###
 # Pipelines

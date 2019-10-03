@@ -19,7 +19,7 @@ class CrawlSpecification:
                  parser: str = None,
                  parser_data: {} = None,
                  pipelines: {} = None,
-                 finalizers: [] = None):
+                 finalizers: {} = None):
 
         self.name = name
         self.workspace = workspace
@@ -43,7 +43,7 @@ class CrawlSpecification:
         self.pipelines = pipelines
 
         if finalizers is None:
-            finalizers = list()
+            finalizers = dict()
         self.finalizers = finalizers
 
     def update(self,
@@ -54,7 +54,7 @@ class CrawlSpecification:
                parser: str = None,
                parser_data: {} = None,
                pipelines: {} = None,
-               finalizers: [] = None):
+               finalizers: {} = None):
         if name:
             self.name = name
         if workspace:

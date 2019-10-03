@@ -6,14 +6,15 @@ Created on 27.05.2019
 from PyQt5.QtGui import QCursor
 from PyQt5.Qt import Qt
 
+import core
 from core.QtExtensions import VerticalContainer
 from modules.crawler.controller import CrawlerController
 from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QPushButton, QSplitter, \
-    QComboBox, QGroupBox, QVBoxLayout
+    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy
 from PyQt5.QtWidgets import QHBoxLayout
 import qtawesome
 
-from modules.crawler.initializers.local import LocalCrawlView
+from modules import crawler
 
 
 class CrawlerWidget(VerticalContainer):
@@ -23,12 +24,28 @@ class CrawlerWidget(VerticalContainer):
         super().__init__()
 
         self.crawl_specification_view = CrawlSpecificationView()
-        self.crawl_init_view = LocalCrawlView()
+
+        self.crawl_init_view = None
+        # self.crawl_init_view = core.get_class(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT])()
+
+        self.initializer_select = QComboBox()
+        self.initializer_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
+        initializer_label = QLabel("Select initializer: ")
+
+        initializer_filler = QWidget()
+        initializer_filler.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        initializer_layout = QHBoxLayout()
+        initializer_layout.addWidget(initializer_label)
+        initializer_layout.addWidget(self.initializer_select)
+        initializer_layout.addWidget(initializer_filler)
 
         # put everything together
         self.addWidget(self.crawl_specification_view)
-        self.addWidget(self.crawl_init_view)
-        
+        self.addLayout(initializer_layout)
+        # self.addWidget(self.crawl_init_view)
+
         self.cnt = CrawlerController(self)
 
 

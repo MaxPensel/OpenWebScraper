@@ -10,7 +10,8 @@ import sys
 from PyQt5.QtWidgets import QWidget, QComboBox, QPushButton, QVBoxLayout, QGroupBox, QLineEdit, QHBoxLayout, QMessageBox
 
 import core
-from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMessage, SimpleMessageBox
+from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMessage, SimpleMessageBox, \
+    HorizontalContainer
 from crawlUI import Settings
 from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls
 from modules.crawler.controller import CrawlerController
@@ -19,7 +20,7 @@ from modules.crawler.model import CrawlSpecification
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
 
-class LocalCrawlView(QWidget):
+class LocalCrawlView(HorizontalContainer):
 
     def __init__(self):
         super().__init__()
@@ -61,12 +62,9 @@ class LocalCrawlView(QWidget):
         new_crawl_input_group.setLayout(new_crawl_layout)
 
         # put together crawl starting options
-        crawl_starting_options_layout = QHBoxLayout()
-        crawl_starting_options_layout.addWidget(self.prev_crawl_groupbox)
-        crawl_starting_options_layout.addWidget(continue_crawl_groupbox)
-        crawl_starting_options_layout.addWidget(new_crawl_input_group)
-
-        self.setLayout(crawl_starting_options_layout)
+        self.addWidget(self.prev_crawl_groupbox)
+        self.addWidget(continue_crawl_groupbox)
+        self.addWidget(new_crawl_input_group)
 
         self.cnt = LocalCrawlController(self)
 
@@ -252,7 +250,7 @@ class LocalCrawlController(core.ViewController):
                         parser_data={"xpaths": ["//p", "//td"],
                                      "keep_on_lang_error": False},
                         pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},
-                        finalizers=["modules.crawler.scrapy.pipelines.LocalCrawlFinalizer"])
+                        finalizers={"modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}})
             if spec.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"

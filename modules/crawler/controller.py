@@ -6,13 +6,15 @@ Created on 27.05.2019
 
 import os
 
+from PyQt5 import sip
 from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit
+from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QWidget, QLayout
 
 import core
 from core.QtExtensions import saturate_combobox, build_save_file_connector
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader
+from modules import crawler
 from modules.crawler import filemanager
 from modules.crawler.model import CrawlSpecification
 
@@ -31,9 +33,7 @@ class CrawlerController(core.ViewController):
                                 view.crawl_specification_view.url_input,
                                 view.crawl_specification_view.blacklist_input])
 
-        self._view.crawl_init_view.cnt.register_master_cnt(self)
-
-        self.sub_controllers = [self._view.crawl_init_view.cnt]
+        self.sub_controllers = []
 
         # for now, init with default pipeline
         self.crawl_specification = CrawlSpecification()
@@ -61,6 +61,11 @@ class CrawlerController(core.ViewController):
 
         self._view.crawl_specification_view.url_delete.setDisabled(True)
         self._view.crawl_specification_view.blacklist_delete.setDisabled(True)
+
+        saturate_combobox(self._view.initializer_select, crawler.INITIALIZER_WIDGETS.keys(), include_empty=False)
+        self._view.initializer_select.setCurrentIndex(self._view.initializer_select.findText(crawler.INITIALIZER_DEFAULT))
+
+        self.register_initializer_view(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT])
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -95,6 +100,8 @@ class CrawlerController(core.ViewController):
                                       filemanager.save_blacklist_content,
                                       filemanager.get_blacklist_filenames))
 
+        self._view.initializer_select.currentIndexChanged.connect(self.switch_initializer_view)
+
         # trigger model updates
         self._view.crawl_specification_view.url_area.textChanged.connect(self.update_model)
         self._view.crawl_specification_view.blacklist_area.textChanged.connect(self.update_model)
@@ -113,6 +120,26 @@ class CrawlerController(core.ViewController):
         blacklist_completer.setModel(blacklist_model)
         blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._view.crawl_specification_view.blacklist_input.setCompleter(blacklist_completer)
+
+    def switch_initializer_view(self):
+        key = self._view.initializer_select.currentText()
+        self.register_initializer_view(crawler.INITIALIZER_WIDGETS[key])
+
+    def register_initializer_view(self, initializer_view_path):
+        init_view = core.get_class(initializer_view_path)
+        if issubclass(init_view, QWidget):
+            if self._view.crawl_init_view is not None:
+                self._view.layout().removeWidget(self._view.crawl_init_view)
+                sip.delete(self._view.crawl_init_view)
+
+            self._view.crawl_init_view = init_view()
+            if issubclass(init_view, QWidget):
+                self._view.addWidget(self._view.crawl_init_view)
+
+            self._view.crawl_init_view.cnt.register_master_cnt(self)
+            self.sub_controllers = [self._view.crawl_init_view.cnt]
+
+            self.update_view()
 
     @staticmethod
     def load_file_to_editor(combobox: QComboBox,
