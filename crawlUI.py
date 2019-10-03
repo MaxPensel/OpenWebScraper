@@ -7,6 +7,7 @@ Created on 24.05.2019
 import importlib
 import os
 import json
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QSizePolicy, \
     QTableWidget, QTableWidgetItem, QAction, QFileDialog, QWidget
 from PyQt5.QtGui import QIcon
@@ -185,7 +186,8 @@ class ModLoader:
                     mod.TITLE = modname
                 
                 if hasattr(mod, "MAIN_WIDGET"):
-                    setattr(mod, "MAIN_WIDGET", core.get_class(getattr(mod, "MAIN_WIDGET")))
+                    widget_path = getattr(mod, "MAIN_WIDGET")
+                    setattr(mod, "MAIN_WIDGET", core.get_class(widget_path))
                     # only load the module if MAIN_WIDGET is a QWidget:
                     if issubclass(getattr(mod, "MAIN_WIDGET"), QWidget):
                         self.modules.append(mod)
