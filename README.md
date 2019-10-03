@@ -63,7 +63,7 @@ Components such as the parsing of incoming http-responses and further processing
 
 ```JSON
 {
-	"blacklist": [
+    "blacklist": [
          "http://www.example.com/do-not-crawl-this"
     ],
     "finalizers": {
