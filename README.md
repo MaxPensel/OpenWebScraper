@@ -46,8 +46,14 @@ There is a well documented template module that contains further information on 
 For the crawler module, there are two main components, the PyQt5 UI (the main widget of the crawler module), and a wrapper script executing the scrapy crawling process (scrapy_wrapper.py).
 The main widget adheres to a model view controller (MVC) structure. The view is used to configure all parameters that specify a single run of the scrapy wrapper script. The controller generates this specification in the form of a .json file and executes the scrapy wrapper script.
 
+The crawler UI itself consists of two parts, the main control elements to construct a crawl specification and an area to set up different types of crawl initialization routines. The latter is implemented in a modular way and can be selected independendly of the former. The two initialization routines that are included currently, are
+1. a local initialization, this executes the scrapy_wrapper on the same machine, using the same workspace as the UI
+2. a remote message queue initializer, this sends the crawl specification json to a remote message queue to be further processed by remote task listeners
+
+![scrapy wrapper component overview](doc/img/crawler_ui.svg "Crawler UI components")
+
 The scrapy_wrapper is standalone in the sense that it takes a run specification json file as input, to determine what urls to crawl, how to process responses, where to store retrieved data, etc. (see [specification.json]).
-Components such as the parsing of incoming http-responses and further processing of the parsed data (in pipelines) can be specified in the run specification, in order to keep extensibility of the scrapy wrapper as high as possible.
+Components such as the parsing of incoming http-responses and further processing of the parsed data (in pipelines or finalizers) can be specified in the run specification, in order to keep extensibility of the scrapy wrapper as high as possible.
 
 ![scrapy wrapper component overview](doc/img/scrapy_wrapper_layout.svg "scrapy_wrapper Components")
 
@@ -57,11 +63,21 @@ Components such as the parsing of incoming http-responses and further processing
 
 ```JSON
 {
-    "blacklist": [
+	"blacklist": [
          "http://www.example.com/do-not-crawl-this"
     ],
-    "mode": "new",
-    "name": "test scrapy pipeline",
+    "finalizers": {
+        "modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}
+    },
+    "name": "sep init",
+    "parser": "modules.crawler.scrapy.parsers.ParagraphParser",
+    "parser_data": {
+        "keep_on_lang_error": false,
+        "xpaths": [
+            "//p",
+            "//td"
+        ]
+    },
     "pipelines": {
         "modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300
     },
@@ -69,17 +85,15 @@ Components such as the parsing of incoming http-responses and further processing
         "http://www.example.com/start-crawling-this",
         "http://www.example.com/start-crawling-that"
     ],
-    "workspace": "C:\\Path\\To\\A\\Local\\Workspace",
-    "xpaths": [
-        "//p",
-        "//td"
-    ]
+    "workspace": "D:\\Projects\\Crawler\\SpiderGUI\\default_workspace"
 }
 ```
 
 * _blacklist_: contains a list of url strings, acts as a prefix-blacklist, i.e. urls starting with any of the here specified strings will not be crawled
-* _mode_: currently allows for the values "new" and "continue", soon will allow to "recrawl_empty". Right now the mode parameter influences the list of urls to crawl, based on already existing data in the local workspace. Soon this feature will be exclusive for using the local workspace, i.e. when introducing other pipelines it is not clear how to determine scrapy's behaviour based on the given mode.
+* _finalizers_: contains a dictionary describing the finalizers to be executed after a crawl has finished, key is path to finalizer class and value is dictionary of generic data influencing behaviour of the finalizer
 * _name_: The name of the crawl.
+* _parser_: path to parser class, this handles all http-responses obtained during crawling
+* _parser_data_: custom data to be passed to the parser instantiation
 * _pipelines_: Specifies the scrapy pipelines setting, see the [scrapy documentation](https://docs.scrapy.org/en/latest/topics/item-pipeline.html)
 * _urls_: contains a list of url strings, these will be the start urls, a single scrapy crawlspider is started for each given url
 * _workspace_: For now, the workspace setting is linked together with the _mode_. Soon, these options will be deferred to the pipeline setting.
