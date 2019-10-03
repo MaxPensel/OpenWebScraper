@@ -186,12 +186,7 @@ class ModLoader:
                     mod.TITLE = modname
                 
                 if hasattr(mod, "MAIN_WIDGET"):
-                    widget_path = getattr(mod, "MAIN_WIDGET")
-                    pieces = widget_path.split(".")
-                    view_mod_str = ".".join(pieces[:-1])
-                    view_mod = importlib.import_module(view_mod_str)
-                    setattr(mod, "MAIN_WIDGET", getattr(view_mod, pieces[-1:][0]))
-
+                    setattr(mod, "MAIN_WIDGET", core.get_class(getattr(mod, "MAIN_WIDGET")))
                     # only load the module if MAIN_WIDGET is a QWidget:
                     if issubclass(getattr(mod, "MAIN_WIDGET"), QWidget):
                         self.modules.append(mod)

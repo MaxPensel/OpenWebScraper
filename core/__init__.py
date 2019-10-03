@@ -1,3 +1,4 @@
+import importlib
 import os
 import sys
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
@@ -49,6 +50,28 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
 MASTER_LOG = "master.log"
 MASTER_LOGGER = simple_logger(file_path=MASTER_LOG)
 
+
+def get_class(class_path):
+    """
+    Return the class object of the specified class-path, e.g. core.QtExtensions.SimpleMessageBox.
+    :param class_path:
+    :return: The class, if class_path references an existing, instantiatable class, None otherwise.
+    """
+    pieces = class_path.split(".")
+    package_path = ".".join(pieces[:-1])
+    class_name = pieces[-1:][0]
+
+    package = importlib.import_module(package_path)
+    if not hasattr(package, class_name):
+        MASTER_LOGGER.error("The module {0} has no attribute '{1}'".format(package_path, class_name))
+        return None
+
+    clazz = getattr(package, class_name)
+    if not isinstance(clazz, type):
+        MASTER_LOGGER.error("{1} is not an instantiatable class in {0}".format(package_path, class_name))
+        return None
+
+    return clazz
 
 class ViewController:
 
