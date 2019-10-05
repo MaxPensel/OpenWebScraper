@@ -66,6 +66,7 @@ class MessageQueueController(core.ViewController):
         Should not further adjust layouts or labels!
         """
         # TODO: perhaps initialize self._view.queue_input to some default message queue location
+        #  e.g. self._view.queue_input.setText("DEFAULT_URI")
         pass
 
     def setup_behaviour(self):
@@ -96,8 +97,6 @@ class MessageQueueController(core.ViewController):
         Perhaps it should send one specification per start url.
         :return:
         """
-        queue_location = self._view.queue_input.displayText()
-
         # do some specific crawl specification setup
         self.master_cnt.crawl_specification.update(
             # make workspace relative, because scrapy_wrapper is not being executed on THIS system
@@ -113,4 +112,9 @@ class MessageQueueController(core.ViewController):
 
         )
 
-        # TODO: create http request with specification json and send it to the specified message queue location
+        queue_location = self._view.queue_input.displayText()
+
+        json_text = self.master_cnt.crawl_specification.serialize()
+
+        # TODO: create http request with specification json (json_text)
+        #  and send it to the specified message queue location (queue_location)

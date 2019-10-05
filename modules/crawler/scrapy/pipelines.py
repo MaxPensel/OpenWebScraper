@@ -32,6 +32,7 @@ class LocalCrawlFinalizer(CrawlFinalizer):
                                                                                     "scrapy.log"))
 
     def finalize_crawl(self, data: {} = None):
+        self.log.info("Finalizing crawl ...")
         if data is None:
             data = dict()
 
@@ -67,6 +68,8 @@ class LocalCrawlFinalizer(CrawlFinalizer):
         if not one_incomplete:  # and not DEBUG:
             filemanager.move_crawl_specification(self.crawl_specification.name)
 
+        self.log.info("Done finalizing crawl.")
+
 
 class RemoteCrawlFinalizer(CrawlFinalizer):
 
@@ -77,11 +80,27 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
                                                                                     "scrapy.log"))
 
     def finalize_crawl(self, data: {} = None):
+        self.log.info("Finalizing crawl ...")
         if data is None:
             data = dict()
-    # TODO: this method is automatically called after the entire crawl has finished, gather the crawl results from
-    #       the workspace (using filemanager) and compose an http request for further processing
 
+        # TODO: this method is automatically called after the entire crawl has finished, gather the crawl results from
+        #       the workspace (using filemanager) and compose an http request for further processing
+
+        # fetching crawl results
+        for csv_filepath in filemanager.get_datafiles(self.crawl_specification.name, abspath=True):
+            with open(csv_filepath, mode="r", encoding="utf-8") as csv_file:
+                csv_content = csv_file.read()
+                # TODO: add this content to a dict in order to compose http request
+
+        # fetching log contents
+        for log_filename in os.listdir(os.path.join(WorkspaceManager().get_log_path(), "sep init")):
+            log_filepath = os.path.abspath(log_filename)
+            with open(log_filepath, mode="r", encoding="utf-8") as log_filename:
+                log_content = log_filename.read()
+                # TODO: add this content to a dict in order to compose http request
+
+        self.log.info("Done finalizing crawl.")
 
 ###
 # Pipelines

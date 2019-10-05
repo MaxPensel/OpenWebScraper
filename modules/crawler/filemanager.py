@@ -103,8 +103,14 @@ def get_running_crawls():
     return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_dir))
 
 
-def get_datafiles(crawl_name):
-    return __get_filenames_of_type(".csv", _get_crawl_raw_path(crawl_name))
+def get_datafiles(crawl_name, abspath=False):
+    fname_list = __get_filenames_of_type(".csv", _get_crawl_raw_path(crawl_name))
+    if abspath:
+        # return absolute paths with file ending
+        return list(map(lambda fname: os.path.join(_get_crawl_raw_path(crawl_name), fname + ".csv"), fname_list))
+    else:
+        # return a nice list of only the filenames (no file endings)
+        return fname_list
 
 
 def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
