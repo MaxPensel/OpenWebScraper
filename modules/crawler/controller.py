@@ -62,9 +62,14 @@ class CrawlerController(core.ViewController):
         self._view.crawl_specification_view.url_delete.setDisabled(True)
         self._view.crawl_specification_view.blacklist_delete.setDisabled(True)
 
+        saturate_combobox(self._view.parser_select, crawler.PARSER_WIDGETS.keys(), include_empty=False)
+        self._view.parser_select.setCurrentIndex(
+            self._view.parser_select.findText(crawler.PARSER_DEFAULT))
+
         saturate_combobox(self._view.initializer_select, crawler.INITIALIZER_WIDGETS.keys(), include_empty=False)
         self._view.initializer_select.setCurrentIndex(self._view.initializer_select.findText(crawler.INITIALIZER_DEFAULT))
 
+        self.register_parser_view(crawler.PARSER_WIDGETS[crawler.PARSER_DEFAULT])
         self.register_initializer_view(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT])
 
     def setup_behaviour(self):
@@ -121,6 +126,27 @@ class CrawlerController(core.ViewController):
         blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._view.crawl_specification_view.blacklist_input.setCompleter(blacklist_completer)
 
+    def switch_parser_view(self):
+        key = self._view.parser_select.currentText()
+        self.register_parser_view(crawler.PARSER_WIDGETS[key])
+
+    def register_parser_view(self, parser_view_path):
+        parser_view = core.get_class(parser_view_path)
+        if issubclass(parser_view, QWidget):
+            if self._view.crawl_parser_view is not None:
+                self._view.parser_settings_layout.removeWidget(self._view.crawl_parser_view)
+                sip.delete(self._view.crawl_parser_view)
+                self.sub_controllers.remove(self._view.crawl_parser_view.cnt)
+
+            self._view.crawl_parser_view = parser_view()
+            if issubclass(parser_view, QWidget):
+                self._view.parser_settings_layout.addWidget(self._view.crawl_parser_view)
+
+            self._view.crawl_parser_view.cnt.register_master_cnt(self)
+            self.sub_controllers.append(self._view.crawl_parser_view.cnt)
+
+            self.update_view()
+
     def switch_initializer_view(self):
         key = self._view.initializer_select.currentText()
         self.register_initializer_view(crawler.INITIALIZER_WIDGETS[key])
@@ -129,15 +155,16 @@ class CrawlerController(core.ViewController):
         init_view = core.get_class(initializer_view_path)
         if issubclass(init_view, QWidget):
             if self._view.crawl_init_view is not None:
-                self._view.layout().removeWidget(self._view.crawl_init_view)
+                self._view.initializer_layout.removeWidget(self._view.crawl_init_view)
                 sip.delete(self._view.crawl_init_view)
+                self.sub_controllers.remove(self._view.crawl_init_view.cnt)
 
             self._view.crawl_init_view = init_view()
             if issubclass(init_view, QWidget):
-                self._view.addWidget(self._view.crawl_init_view)
+                self._view.initializer_layout.addWidget(self._view.crawl_init_view)
 
             self._view.crawl_init_view.cnt.register_master_cnt(self)
-            self.sub_controllers = [self._view.crawl_init_view.cnt]
+            self.sub_controllers.append(self._view.crawl_init_view.cnt)
 
             self.update_view()
 

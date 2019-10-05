@@ -13,9 +13,12 @@ MAIN_WIDGET = "modules.crawler.view.CrawlerWidget"
 VERSION = "0.2.0 <beta>"
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
-INITIALIZER_WIDGETS = {"Local Workspace Initializer": "modules.crawler.initializers.local.LocalCrawlView",
-                       "Message Queue Initializer": "modules.crawler.initializers.msgqueue.MessageQueueCrawlView"}
+INITIALIZER_WIDGETS = {"Local Workspace Initializer": "modules.crawler.ui.initializers.local.LocalCrawlView",
+                       "Message Queue Initializer": "modules.crawler.ui.initializers.msgqueue.MessageQueueCrawlView"}
 INITIALIZER_DEFAULT = "Local Workspace Initializer"
+
+PARSER_WIDGETS = {"Paragraph Parser": "modules.crawler.ui.parsers.paragraph.ParagraphParserSettingsView"}
+PARSER_DEFAULT = "Paragraph Parser"
 
 
 def detect_valid_urls(urls_in):

@@ -5,7 +5,7 @@ Created on 27.05.2019
 """
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox, QComboBox, \
-    QPlainTextEdit
+    QPlainTextEdit, QFrame
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
 
 import core
@@ -35,6 +35,14 @@ class VerticalContainer(ArrangedContainer):
 
     def __init__(self):
         super().__init__(QVBoxLayout())
+
+
+class HorizontalSeparator(QFrame):
+
+    def __init__(self):
+        super().__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
 
 
 class FileOpenPushButton(QPushButton):

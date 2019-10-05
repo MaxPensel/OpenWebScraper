@@ -7,10 +7,10 @@ from PyQt5.QtGui import QCursor
 from PyQt5.Qt import Qt
 
 import core
-from core.QtExtensions import VerticalContainer
+from core.QtExtensions import VerticalContainer, HorizontalSeparator
 from modules.crawler.controller import CrawlerController
 from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QPushButton, QSplitter, \
-    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy
+    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy, QFrame
 from PyQt5.QtWidgets import QHBoxLayout
 import qtawesome
 
@@ -23,28 +23,53 @@ class CrawlerWidget(VerticalContainer):
         """ Initialises the components of this widget with their layout """
         super().__init__()
 
+        # general crawl settings part
         self.crawl_specification_view = CrawlSpecificationView()
 
+
+        # parser settings part
+        self.crawl_parser_view = None
+        parser_label = QLabel("Select parser: ")
+
+        self.parser_select = QComboBox()
+        self.parser_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
+        parser_filler = QWidget()
+        parser_filler.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        parser_settings_select_layout = QHBoxLayout()
+        parser_settings_select_layout.addWidget(parser_label)
+        parser_settings_select_layout.addWidget(self.parser_select)
+        parser_settings_select_layout.addWidget(parser_filler)
+
+        self.parser_settings_layout = QVBoxLayout()
+        self.parser_settings_layout.addWidget(HorizontalSeparator())
+        self.parser_settings_layout.addLayout(parser_settings_select_layout)
+
+        # initializer part
         self.crawl_init_view = None
-        # self.crawl_init_view = core.get_class(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT])()
+
+        initializer_label = QLabel("Select initializer: ")
 
         self.initializer_select = QComboBox()
         self.initializer_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
-        initializer_label = QLabel("Select initializer: ")
-
         initializer_filler = QWidget()
         initializer_filler.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        initializer_layout = QHBoxLayout()
-        initializer_layout.addWidget(initializer_label)
-        initializer_layout.addWidget(self.initializer_select)
-        initializer_layout.addWidget(initializer_filler)
+        initializer_select_layout = QHBoxLayout()
+        initializer_select_layout.addWidget(initializer_label)
+        initializer_select_layout.addWidget(self.initializer_select)
+        initializer_select_layout.addWidget(initializer_filler)
+
+        self.initializer_layout = QVBoxLayout()
+        self.initializer_layout.addWidget(HorizontalSeparator())
+        self.initializer_layout.addLayout(initializer_select_layout)
 
         # put everything together
         self.addWidget(self.crawl_specification_view)
-        self.addLayout(initializer_layout)
-        # self.addWidget(self.crawl_init_view)
+        self.addLayout(self.parser_settings_layout)
+        self.addLayout(self.initializer_layout)
 
         self.cnt = CrawlerController(self)
 
