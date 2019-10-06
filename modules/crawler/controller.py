@@ -134,13 +134,13 @@ class CrawlerController(core.ViewController):
         parser_view = core.get_class(parser_view_path)
         if issubclass(parser_view, QWidget):
             if self._view.crawl_parser_view is not None:
-                self._view.parser_settings_layout.removeWidget(self._view.crawl_parser_view)
+                self._view.parser_settings_container.layout().removeWidget(self._view.crawl_parser_view)
                 sip.delete(self._view.crawl_parser_view)
                 self.sub_controllers.remove(self._view.crawl_parser_view.cnt)
 
             self._view.crawl_parser_view = parser_view()
             if issubclass(parser_view, QWidget):
-                self._view.parser_settings_layout.addWidget(self._view.crawl_parser_view)
+                self._view.parser_settings_container.layout().addWidget(self._view.crawl_parser_view)
 
             self._view.crawl_parser_view.cnt.register_master_cnt(self)
             self.sub_controllers.append(self._view.crawl_parser_view.cnt)
@@ -155,13 +155,13 @@ class CrawlerController(core.ViewController):
         init_view = core.get_class(initializer_view_path)
         if issubclass(init_view, QWidget):
             if self._view.crawl_init_view is not None:
-                self._view.initializer_layout.removeWidget(self._view.crawl_init_view)
+                self._view.initializer_container.layout().removeWidget(self._view.crawl_init_view)
                 sip.delete(self._view.crawl_init_view)
                 self.sub_controllers.remove(self._view.crawl_init_view.cnt)
 
             self._view.crawl_init_view = init_view()
             if issubclass(init_view, QWidget):
-                self._view.initializer_layout.addWidget(self._view.crawl_init_view)
+                self._view.initializer_container.layout().addWidget(self._view.crawl_init_view)
 
             self._view.crawl_init_view.cnt.register_master_cnt(self)
             self.sub_controllers.append(self._view.crawl_init_view.cnt)

@@ -17,7 +17,7 @@ import qtawesome
 from modules import crawler
 
 
-class CrawlerWidget(VerticalContainer):
+class CrawlerWidget(QSplitter):
     
     def __init__(self):
         """ Initialises the components of this widget with their layout """
@@ -42,9 +42,8 @@ class CrawlerWidget(VerticalContainer):
         parser_settings_select_layout.addWidget(self.parser_select)
         parser_settings_select_layout.addWidget(parser_filler)
 
-        self.parser_settings_layout = QVBoxLayout()
-        self.parser_settings_layout.addWidget(HorizontalSeparator())
-        self.parser_settings_layout.addLayout(parser_settings_select_layout)
+        self.parser_settings_container = VerticalContainer()
+        self.parser_settings_container.addLayout(parser_settings_select_layout)
 
         # initializer part
         self.crawl_init_view = None
@@ -62,14 +61,18 @@ class CrawlerWidget(VerticalContainer):
         initializer_select_layout.addWidget(self.initializer_select)
         initializer_select_layout.addWidget(initializer_filler)
 
-        self.initializer_layout = QVBoxLayout()
-        self.initializer_layout.addWidget(HorizontalSeparator())
-        self.initializer_layout.addLayout(initializer_select_layout)
+        self.initializer_container = VerticalContainer()
+        self.initializer_container.addLayout(initializer_select_layout)
 
         # put everything together
+        self.setChildrenCollapsible(False)
+        self.setOrientation(Qt.Vertical)
+
         self.addWidget(self.crawl_specification_view)
-        self.addLayout(self.parser_settings_layout)
-        self.addLayout(self.initializer_layout)
+
+        self.addWidget(self.parser_settings_container)
+
+        self.addWidget(self.initializer_container)
 
         self.cnt = CrawlerController(self)
 
