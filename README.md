@@ -64,7 +64,7 @@ Components such as the parsing of incoming http-responses and further processing
 ```JSON
 {
     "blacklist": [
-         "http://www.example.com/do-not-crawl-this"
+         "http[s]://www.example.com/do-not-crawl-this.*"
     ],
     "finalizers": {
         "modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}
@@ -72,7 +72,11 @@ Components such as the parsing of incoming http-responses and further processing
     "name": "sep init",
     "parser": "modules.crawler.scrapy.parsers.ParagraphParser",
     "parser_data": {
-        "keep_on_lang_error": false,
+        "allowed_languages": [
+            "de",
+            "en"
+        ],
+        "keep_langdetect_errors": false,
         "xpaths": [
             "//p",
             "//td"
@@ -89,7 +93,7 @@ Components such as the parsing of incoming http-responses and further processing
 }
 ```
 
-* _blacklist_: contains a list of url strings, acts as a prefix-blacklist, i.e. urls starting with any of the here specified strings will not be crawled
+* _blacklist_: contains a list of regular expressions, if a uri matches one of these expressions, it will not be crawled
 * _finalizers_: contains a dictionary describing the finalizers to be executed after a crawl has finished, key is path to finalizer class and value is dictionary of generic data influencing behaviour of the finalizer
 * _name_: The name of the crawl.
 * _parser_: path to parser class, this handles all http-responses obtained during crawling
