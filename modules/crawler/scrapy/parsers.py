@@ -37,16 +37,23 @@ class ResponseParser:
 
 class ParagraphParser(ResponseParser):
 
+    KEY_KEEP_LANGDETECT_ERRORS = "keep_langdetect_errors"
+    KEY_LANGUAGES = "allowed_languages"
+    KEY_XPATHS = "xpaths"
+
+    DEFAULT_ALLOWED_LANGUAGES = ["de", "en"]
+    DEFAULT_XPATHS = ["//p", "//td"]
+
     def __init__(self, data: {} = None, spider=None):
         super().__init__(data=data, spider=spider)
 
         # set defaults
-        if "xpaths" not in self.data:
-            self.data["xpaths"] = list()
-        if "accepted_languages" not in self.data:
-            self.data["accepted_languages"] = ["de", "en"]
-        if "keep_on_lang_error" not in self.data:
-            self.data["keep_on_lang_error"] = True
+        if ParagraphParser.KEY_XPATHS not in self.data:
+            self.data[ParagraphParser.KEY_XPATHS] = ParagraphParser.DEFAULT_XPATHS
+        if ParagraphParser.KEY_LANGUAGES not in self.data:
+            self.data[ParagraphParser.KEY_LANGUAGES] = ParagraphParser.DEFAULT_ALLOWED_LANGUAGES
+        if ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS not in self.data:
+            self.data[ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS] = True
 
         self.callbacks["text/html"] = self.parse_html
         self.callbacks["application/pdf"] = self.parse_pdf
@@ -56,7 +63,7 @@ class ParagraphParser(ResponseParser):
     def parse_html(self, response):
         items = []
 
-        for xp in self.data["xpaths"]:
+        for xp in self.data[ParagraphParser.KEY_XPATHS]:
             paragraphs = response.xpath(xp)
             for par in paragraphs:
                 par_content = "".join(par.xpath(".//text()").extract())
@@ -90,11 +97,11 @@ class ParagraphParser(ResponseParser):
         if par_content.strip():  # immediately ignore empty or only whitespace paragraphs
             try:
                 lang = detect(par_content)
-                if lang in self.data["accepted_languages"]:
+                if lang in self.data[ParagraphParser.KEY_LANGUAGES]:
                     items.append(ParagraphItem(url=response.url, content=par_content, depth=response.meta["depth"]))
                 self.register_paragraph_language(lang)
             except LangDetectException as exc:
-                if self.data["keep_on_lang_error"]:
+                if self.data[ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS]:
                     self.log(logging.WARN, "[process_paragraph] - "
                                            "{0} on langdetect input '{1}'. You chose to store the content anyway!"
                                            .format(exc, par_content))

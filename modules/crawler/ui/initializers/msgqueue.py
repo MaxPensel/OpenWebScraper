@@ -101,10 +101,6 @@ class MessageQueueController(core.ViewController):
         self.master_cnt.crawl_specification.update(
             # make workspace relative, because scrapy_wrapper is not being executed on THIS system
             workspace=os.path.join("..", "..", "default_workspace"),
-            parser="modules.crawler.scrapy.parsers.ParagraphParser",  # keep this
-            # keep parser_data (at least until configuration via UI is possible)
-            parser_data={"xpaths": ["//p", "//td"],
-                         "keep_on_lang_error": False},
             pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},  # keep this too (?!)
             # extend finalizers by one that retrieves the crawl results and sends them away
             finalizers={"modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {},

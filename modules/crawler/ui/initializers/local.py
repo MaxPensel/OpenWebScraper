@@ -80,10 +80,12 @@ class LocalCrawlController(core.ViewController):
 
         self.init_elements()
 
-        self.setup_behaviour()
+        # self.setup_behaviour()  # behavior must be setup after master controller is registered
 
     def register_master_cnt(self, master_controller: CrawlerController):
         self.master_cnt = master_controller
+        # re-setup behaviour
+        self.setup_behaviour()
 
     def init_elements(self):
         """ Sets up the initial state of the elements
@@ -119,7 +121,8 @@ class LocalCrawlController(core.ViewController):
             self.master_cnt.crawl_specification.update(name=self._view.crawl_name_input.displayText())
 
     def update_view(self):
-        self._view.crawl_name_input.setText(self.master_cnt.crawl_specification.name)
+        if self.master_cnt:
+            self._view.crawl_name_input.setText(self.master_cnt.crawl_specification.name)
 
     def select_unfinished_crawl(self):
         # load crawl
@@ -245,11 +248,8 @@ class LocalCrawlController(core.ViewController):
             else:
                 return filemanager.get_running_specification_path(spec.name)
         else:
-            # setup parser and finalizers; for now this setup is fixed, should be UI configurable in the future
-            spec.update(parser="modules.crawler.scrapy.parsers.ParagraphParser",
-                        parser_data={"xpaths": ["//p", "//td"],
-                                     "keep_on_lang_error": False},
-                        pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},
+            # setup finalizers; for now this setup is fixed, may be UI configurable in the future
+            spec.update(pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},
                         finalizers={"modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}})
             if spec.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",

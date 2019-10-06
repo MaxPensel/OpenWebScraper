@@ -23,7 +23,7 @@ class CrawlFinalizer:
 
 
 class LocalCrawlFinalizer(CrawlFinalizer):
-    LANGSTATS_ID = "languages"
+    LANGSTATS_ID = "allowed_languages"
 
     def __init__(self, spec: CrawlSpecification, settings: {}):
         super().__init__(spec)

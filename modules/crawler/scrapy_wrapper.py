@@ -33,7 +33,7 @@ from modules.crawler import filemanager
 
 
 ACCEPTED_LANG = ["de", "en"]  # will be dynamically set through the UI in the future
-LANGSTATS_ID = "languages"
+LANGSTATS_ID = "allowed_languages"
 LANGSTATS = pandas.DataFrame(columns=ACCEPTED_LANG)
 LANGSTATS.index.name = "url"
 
