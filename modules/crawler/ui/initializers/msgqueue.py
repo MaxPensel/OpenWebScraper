@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QGroupBox
 import core
-from core.QtExtensions import HorizontalContainer
+from core.QtExtensions import HorizontalContainer, SimpleErrorInfo
 from modules.crawler.controller import CrawlerController
 
 
@@ -115,6 +115,10 @@ class MessageQueueController(core.ViewController):
         queue_location = self._view.queue_input.displayText()
 
         json_text = self.master_cnt.crawl_specification.serialize()
+
+        SimpleErrorInfo("Feature not yet implemented",
+                        "Sending crawl specifications to a message queue "
+                        "has not yet been implemented, please be patient.").exec()
 
         # TODO: create http request with specification json (json_text)
         #  and send it to the specified message queue location (queue_location)
