@@ -82,16 +82,13 @@ def create_spider(settings, start_url, crawler_name):
     class GenericCrawlSpider(CrawlSpider):
 
         crawl_specification = settings
-        # crawl_specification["parser"] = "modules.crawler.scrapy.parsers.ParagraphParser"
-        # load parser locations from settings (?)
-        # parser_mod = importlib.import_module("modules.crawler.scrapy.parsers")
-        # parser_class = getattr(parser_mod, "ParagraphParser")  # instantiate parser, later depending on crawl_specification
+
+        # load parser from specification
         parser_class = core.get_class(crawl_specification.parser)
         parser = parser_class(data=crawl_specification.parser_data)
 
         domain = urlparse(start_url).netloc
 
-        # name = 'generic_crawler'
         name = crawler_name
 
         allowed_domains = [domain]
@@ -105,16 +102,12 @@ def create_spider(settings, start_url, crawler_name):
                              'odg', 'odp', 'css', 'exe', 'bin', 'rss', 'zip', 'rar', 'gz', 'tar'
                              )
 
-        # start_urls = parse_urls(filemanager.get_url_content(crawl_specification.urls))
-        # allowed_domains = list(map(lambda x: urlparse(x).netloc, start_urls))
-
-        # p = re.compile("^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")
         rules = [
-            # Rule(LinkExtractor(deny=r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?")),
-            Rule(LxmlLinkExtractor(  # deny=(r"^https://www.glashuette-original.com/(fr|it|es|zh-hans|ja)(/.*)?"),
-                                     # deny=blacklistloader.load_blacklist(),  # Blacklist feature not yet implemented
-                                    allow=start_url+".*",  # crawl only links behind the given start-url
-                                    deny_extensions=denied_extensions), callback=parser.parse, follow=True)
+            Rule(LxmlLinkExtractor(deny=crawl_specification.blacklist,
+                                   allow=start_url+".*",  # crawl only links behind the given start-url
+                                   deny_extensions=denied_extensions),
+                 callback=parser.parse,
+                 follow=True)
         ]
 
         # ensure that start_urls are also parsed
