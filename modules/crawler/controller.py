@@ -164,10 +164,14 @@ class CrawlerController(core.ViewController):
             view = view_class()
             if layout.count() > 1:
                 prev_layout = layout.itemAt(1)
+                self.sub_controllers.remove(prev_layout.cnt)
                 delete_layout(prev_layout)
                 layout.removeItem(prev_layout)
             layout.addLayout(view)
+
             view.cnt.register_master_cnt(self)
+            self.sub_controllers.append(view.cnt)
+            self.update_view()
 
     def switch_parser_view(self):
         key = self._view.parser_select.currentText()
@@ -223,7 +227,8 @@ class CrawlerController(core.ViewController):
                 content = content_loader(filename)
                 text_area.setPlainText(content)
                 input_field.setText(filename)
-                controller._view.crawl_init_view.cnt.reset_view()
+                for sub_controller in controller.sub_controllers:
+                    sub_controller.reset_view()
         return combobox_connector
 
     def update_view(self):

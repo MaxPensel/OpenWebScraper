@@ -225,7 +225,7 @@ def save_crawl_settings(name, settings: CrawlSpecification):
         os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir), exist_ok=True)
         filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, name + ".json")
 
-        __save_file_content(settings.serialize(), filepath)
+        __save_file_content(settings.serialize(pretty=False), filepath)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return False
@@ -324,7 +324,11 @@ def move_crawl_specification(crawl):
     running_file = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, running_filename)
     destination = os.path.join(_get_crawl_path(crawl), running_filename)
 
-    shutil.move(running_file, destination)
+    try:
+        shutil.move(running_file, destination)
+    except FileNotFoundError as exc:
+        LOG.error("Could not move crawl specification to crawl data. The respective json file was not found in the "
+                  "running directory.")
 
     delete_and_clean(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir))
 

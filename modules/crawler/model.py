@@ -89,8 +89,11 @@ class CrawlSpecification:
         if finalizers:
             self.finalizers = finalizers
 
-    def serialize(self):
-        return json.dumps(self.__dict__, sort_keys=True, indent=4, separators=(',', ': '))
+    def serialize(self, pretty=True):
+        if pretty:
+            return json.dumps(self.__dict__, sort_keys=True, indent=4, separators=(',', ': '))
+        else:
+            return json.dumps(self.__dict__, sort_keys=True, separators=(',', ':'))
 
     def deserialize(self, json_str):
         data = json.loads(json_str)

@@ -57,9 +57,9 @@ LANGSTATS.index.name = "url"
 
 
 if len(sys.argv) >= 2:
-    SETTINGS_PATH = sys.argv[1]
+    call_parameter = sys.argv[1]
 else:
-    SETTINGS_PATH = None
+    call_parameter = None
 
 DEBUG = False
 if len(sys.argv) >= 3 and sys.argv[2] == "DEBUG":
@@ -161,10 +161,9 @@ class GenericScrapySettings(Settings):
             })
 
 
-if SETTINGS_PATH is None:
-    MLOG.error("No crawl specification file given. Call scrapy_wrapper.py as follows:\n" +
-               "  python scrapy_wrapper.py <spec_file> [DEBUG]\n" +
-               "  <spec_file> should be a json that contains start urls, blacklist, workspace directory, etc.")
+if call_parameter is None:
+    MLOG.error("Neither crawl specification file nor json string given. Call scrapy_wrapper.py as follows:\n" +
+               "  python scrapy_wrapper.py <spec_file|spec json string> [DEBUG]")
     exit()
 
 
@@ -172,7 +171,12 @@ if __name__ == '__main__':
     # setup consistent language detection
     DetectorFactory.seed = 0
 
-    crawl_specification = load_settings(SETTINGS_PATH)
+    if os.path.exists(call_parameter):
+        crawl_specification = load_settings(call_parameter)
+    else:
+        # assume the first parameter to be the json string
+        crawl_specification = CrawlSpecification()
+        crawl_specification.deserialize(call_parameter)
 
     if not crawl_specification:
         MLOG.error("Crawl settings could not be loaded. Exiting scrapy_wrapper.")
