@@ -55,7 +55,7 @@ class UIWindow(QMainWindow):
         self.init_menu()
 
         self.setGeometry(200, 200, 800, 800)
-        self.setWindowTitle("SpiderGUI")
+        self.setWindowTitle("OpenWebScraper")
 
     def init_menu(self):
         main_menu = self.menuBar()
