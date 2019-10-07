@@ -1,11 +1,29 @@
 #! python3
 """
+The main intention and idea of this wrapper is based on a scrapy wrapper script by Philipp Poschmann.
+The only code remaining from their original script (aside from a few function/class names) is the list of
+denied_extensions in the GenericCrawlSpider class.
+
 Created on 15.06.2019
 
-Several methods, structures and ideas in this wrapper are based on original code by Philipp Poschmann.
-For the most part, this is the case in the GenericCrawlSpider and GenericCrawlPipeline classes.
-
 @author: Maximilian Pensel
+
+Copyright 2019 Maximilian Pensel <maximilian.pensel@gmx.de>
+
+This file is part of OpenWebScraper.
+
+OpenWebScraper is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OpenWebScraper is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 import importlib
 import logging

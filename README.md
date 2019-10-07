@@ -2,8 +2,9 @@
 
 This is a simple modular graphical endpoint for the [Scrapy](https://scrapy.org/) python web-crawler library.
 It allows to issue crawls with a basic list of urls and prefix-blacklist.
-It also supports several post-processing and analytical features that are heavily based on [pandas](http://pandas.pydata.org/).
-The GUI and its features are specifically tailored to the german DFG research project ["Die Konstruktion organisationaler Identität und der Einfluss von Geschichte"](http://gepris.dfg.de/gepris/projekt/398074981?context=projekt&task=showDetail&id=398074981&) at the [TU Ilmenau](https://www.tu-ilmenau.de/).
+It will also support several post-processing and analytical features that are heavily based on the [pandas](http://pandas.pydata.org/) library.
+The graphical user interface (GUI) and its features are specifically tailored to the german DFG research project ["Die Konstruktion organisationaler Identität und der Einfluss von Geschichte"](http://gepris.dfg.de/gepris/projekt/398074981?context=projekt&task=showDetail&id=398074981&) at the [TU Ilmenau](https://www.tu-ilmenau.de/).
+
 
 # Remarks
 
@@ -38,7 +39,7 @@ Even though executing batch files works with double-click as well, an activated 
 # Documentation
 
 This is a preliminary documentation about the code structure and some module interactions.
-First of all, the main UI (user interface) is a modular platform. The core loads the modules that are present in the ```modules``` directory and activated in the ```settings.ini```. Each module contains a main PyQt5 Widget that represents its view component. Each main widget appears as a new tab in the core UI.
+First of all, the main user interface (UI) is a modular platform. The core loads the modules that are present in the ```modules``` directory and activated in the ```settings.ini```. Each module contains a main PyQt5 Widget that represents its view component. Each main widget appears as a new tab in the core UI.
 There is a well documented template module that contains further information on how to implement new modules.
 
 ## Module: Crawler
@@ -52,7 +53,7 @@ The crawler UI itself consists of two parts, the main control elements to constr
 
 ![scrapy wrapper component overview](doc/img/crawler_ui.svg "Crawler UI components")
 
-The scrapy_wrapper is standalone in the sense that it takes a run specification json file as input, to determine what urls to crawl, how to process responses, where to store retrieved data, etc. (see [specification.json]).
+The scrapy_wrapper is standalone in the sense that it takes a run specification json file as input, to determine what urls to crawl, how to process responses, where to store retrieved data, etc. (see [specification.json](#specification.json)).
 Components such as the parsing of incoming http-responses and further processing of the parsed data (in pipelines or finalizers) can be specified in the run specification, in order to keep extensibility of the scrapy wrapper as high as possible.
 
 ![scrapy wrapper component overview](doc/img/scrapy_wrapper_layout.svg "scrapy_wrapper Components")
@@ -64,12 +65,12 @@ Components such as the parsing of incoming http-responses and further processing
 ```JSON
 {
     "blacklist": [
-         "http[s]://www.example.com/do-not-crawl-this.*"
+         "http[s]://www\.example\.com/do-not-crawl-this.*"
     ],
     "finalizers": {
         "modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}
     },
-    "name": "sep init",
+    "name": "example crawlname",
     "parser": "modules.crawler.scrapy.parsers.ParagraphParser",
     "parser_data": {
         "allowed_languages": [
@@ -89,7 +90,7 @@ Components such as the parsing of incoming http-responses and further processing
         "http://www.example.com/start-crawling-this",
         "http://www.example.com/start-crawling-that"
     ],
-    "workspace": "D:\\Projects\\Crawler\\SpiderGUI\\default_workspace"
+    "workspace": "C:\\Path\\To\\Your\\Workspace"
 }
 ```
 
@@ -102,3 +103,8 @@ Components such as the parsing of incoming http-responses and further processing
 * _urls_: contains a list of url strings, these will be the start urls, a single scrapy crawlspider is started for each given url
 * _workspace_: For now, the workspace setting is linked together with the _mode_. Soon, these options will be deferred to the pipeline setting.
 * _xpaths_: contains a list of xpath expressions to fetch paragraphs from. This specification will be exclusive to "paragraph-extracting" kind of parsers.
+
+# License
+
+This software is free of use, modification and redistribution under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
+For more information view the full text of the GNU GPLv3 license in COPYING or [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
