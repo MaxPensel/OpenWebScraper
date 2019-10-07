@@ -32,4 +32,5 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 
 TITLE = "Template"
 MAIN_WIDGET = "modules.template.view.TemplateWidget"
-VERSION = "1.1.0"
+VERSION = "1.1.1"
+COPYRIGHT = "2019 Maximilian Pensel"

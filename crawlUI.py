@@ -27,14 +27,16 @@ import os
 import json
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QSizePolicy, \
-    QTableWidget, QTableWidgetItem, QAction, QFileDialog, QWidget
+    QTableWidget, QTableWidgetItem, QAction, QFileDialog, QWidget, QLabel, QFrame
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 import core
+from core.QtExtensions import VerticalContainer
 from core.Workspace import WorkspaceManager
 
-VERSION = "0.3.0 <alpha>"
+VERSION = "0.4.0 <beta>"
+COPYRIGHT = "2019 Maximilian Pensel"
 
 LOG = core.simple_logger(file_path=core.MASTER_LOG)
 
@@ -54,7 +56,6 @@ class UIWindow(QMainWindow):
 
         self.init_menu()
 
-        self.setGeometry(200, 200, 800, 800)
         self.setWindowTitle("OpenWebScraper")
 
     def init_menu(self):
@@ -76,14 +77,14 @@ class UIWindow(QMainWindow):
         file_menu.addAction(exit_button)
 
         # Help > Info
-        info_button = QAction('Version Info', self)
-        info_button.setStatusTip('View the version info of all loaded modules')
+        info_button = QAction('About', self)
+        info_button.setStatusTip('Show an info window containing license, copyright and version information.')
         info_button.triggered.connect(self.info_button_click)
         help_menu.addAction(info_button)
 
     def info_button_click(self):
         if self.info_window is None:
-            self.info_window = InfoWindow(self)
+            self.info_window = AboutWindow(self)
 
         if not self.info_window.isVisible():
             self.info_window.show()
@@ -133,55 +134,90 @@ class MainWidget(QTabWidget):
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
 
 
-class InfoWindow(QMainWindow):
+class AboutWindow(QMainWindow):
     
     def __init__(self, parent=None):
         super().__init__(parent)
         global VERSION
         
-        self.setWindowTitle("Info")
+        self.setWindowTitle("About")
         self.setWindowIcon(QIcon("resources/info.png"))
-        
-        versions = {}
+
+        # collect data from modules
+        mod_data = dict()
         for mod_dir in os.listdir(ModLoader.MOD_DIR):
             if os.path.exists(os.path.join(ModLoader.MOD_DIR, mod_dir, "__init__.py")):
                 try:
                     mod = importlib.import_module(ModLoader.MOD_DIR + "." + mod_dir,
                                                   ModLoader.MOD_DIR + "." + mod_dir)
                     if hasattr(mod, "VERSION"):
-                        versions[mod_dir] = "{0}".format(mod.VERSION)
+                        version = getattr(mod, "VERSION")
                     else:
-                        versions[mod_dir] = "- not supported -"
+                        version = "- not supported -"
+
+                    if hasattr(mod, "COPYRIGHT"):
+                        cpright = getattr(mod, "COPYRIGHT")
+                    else:
+                        cpright = "- not specified -"
+
+                    mod_data[mod_dir] = (version, cpright)
                 except Exception as exc:
                     LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+        # also collect core data
+        core_data = (VERSION, COPYRIGHT)
+
+        # Info text and license notice
+        copyright_label = QLabel("""\
+<h1>OpenWebScraper</h1>
+<p>This software is free of use, modification and redistribution \
+under the terms of the GNU General Public License version 3 as \
+published by the Free Software Foundation. \
+Either see the COPYING file contained in this repository or \
+<a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a> \
+for a full version of the GPLv3 license.</p><p>\
+The copyright notice and version info for each of the contained modules \
+is found in the table below. The core module is considered to comprise all \
+source files outside of the <i>modules</i> directory.</p>
+""")
+        copyright_label.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        copyright_label.setAlignment(Qt.AlignBottom | Qt.AlignCenter)
+        copyright_label.setWordWrap(True)
+        copyright_label.setMargin(10)
+
+        # version table
+        version_table = QTableWidget()
+        version_table.setColumnCount(3)
+        version_table.setRowCount(len(mod_data) + 1)
         
-        central = QTableWidget()
-        central.setColumnCount(2)
-        central.setRowCount(2 + len(versions))
+        version_table.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
+        version_table.setHorizontalHeaderItem(0, QTableWidgetItem("Module"))
+        version_table.setHorizontalHeaderItem(1, QTableWidgetItem("Version"))
+        version_table.setHorizontalHeaderItem(2, QTableWidgetItem("Copyright"))
+        version_table.verticalHeader().hide()
+        version_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        version_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        version_table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
         
-        central.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
-        central.horizontalHeader().hide()
-        central.verticalHeader().hide()
-        central.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        central.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-        
-        central.setItem(0, 0, QTableWidgetItem("Version of core module:"))
-        central.setItem(0, 1, QTableWidgetItem("v{0}".format(VERSION)))
-        
-        central.setItem(1, 0, QTableWidgetItem())
-        central.setItem(1, 1, QTableWidgetItem())
-        
-        row = 2        
-        for mod, version in versions.items():
-            central.setItem(row, 0, QTableWidgetItem("Version of moule {0}:".format(mod)))
-            central.setItem(row, 1, QTableWidgetItem(version))
+        version_table.setItem(0, 0, QTableWidgetItem("core"))
+        version_table.setItem(0, 1, QTableWidgetItem(core_data[0]))
+        version_table.setItem(0, 2, QTableWidgetItem(core_data[1]))
+
+        row = 1
+        for mod_name in mod_data:
+            version_table.setItem(row, 0, QTableWidgetItem(mod_name))
+            version_table.setItem(row, 1, QTableWidgetItem(mod_data[mod_name][0]))
+            version_table.setItem(row, 2, QTableWidgetItem(mod_data[mod_name][1]))
             
             row += 1
         
-        for i in range(central.rowCount()):
-            for j in range(central.columnCount()):
-                central.item(i, j).setFlags(Qt.ItemIsEnabled) 
-                # central.item(i, j).setFlags(Qt.ItemIsSelectable)
+        for i in range(version_table.rowCount()):
+            for j in range(version_table.columnCount()):
+                version_table.item(i, j).setFlags(Qt.ItemIsEnabled)
+                # version_table.item(i, j).setFlags(Qt.ItemIsSelectable)
+
+        central = VerticalContainer()
+        central.addWidget(copyright_label)
+        central.addWidget(version_table)
 
         self.setCentralWidget(central)
 
@@ -270,6 +306,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = UIWindow(Settings())
+    #window = AboutWindow()
 
     window.show()
 

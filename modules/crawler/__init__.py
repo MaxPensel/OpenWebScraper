@@ -26,7 +26,8 @@ import core
 
 TITLE = "Crawler"
 MAIN_WIDGET = "modules.crawler.view.CrawlerWidget"
-VERSION = "0.2.0 <beta>"
+VERSION = "0.4.0 <beta>"
+COPYRIGHT = "2019 Maximilian Pensel"
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
 INITIALIZER_WIDGETS = {"Local Workspace Initializer": "modules.crawler.ui.initializers.local.LocalCrawlView",
