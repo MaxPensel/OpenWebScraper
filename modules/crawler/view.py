@@ -10,7 +10,7 @@ import core
 from core.QtExtensions import VerticalContainer, HorizontalSeparator
 from modules.crawler.controller import CrawlerController
 from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QPushButton, QSplitter, \
-    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy, QFrame
+    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy, QFrame, QSpacerItem
 from PyQt5.QtWidgets import QHBoxLayout
 import qtawesome
 
@@ -34,13 +34,10 @@ class CrawlerWidget(QSplitter):
         self.parser_select = QComboBox()
         self.parser_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
-        parser_filler = QWidget()
-        parser_filler.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
         parser_settings_select_layout = QHBoxLayout()
         parser_settings_select_layout.addWidget(parser_label)
         parser_settings_select_layout.addWidget(self.parser_select)
-        parser_settings_select_layout.addWidget(parser_filler)
+        parser_settings_select_layout.addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
         self.parser_settings_container = VerticalContainer()
         self.parser_settings_container.addLayout(parser_settings_select_layout)
@@ -53,13 +50,10 @@ class CrawlerWidget(QSplitter):
         self.initializer_select = QComboBox()
         self.initializer_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
-        initializer_filler = QWidget()
-        initializer_filler.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
         initializer_select_layout = QHBoxLayout()
         initializer_select_layout.addWidget(initializer_label)
         initializer_select_layout.addWidget(self.initializer_select)
-        initializer_select_layout.addWidget(initializer_filler)
+        initializer_select_layout.addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
         self.initializer_container = VerticalContainer()
         self.initializer_container.addLayout(initializer_select_layout)
