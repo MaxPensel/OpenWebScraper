@@ -75,9 +75,9 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
 
     def __init__(self, spec: CrawlSpecification, settings: {}):
         super().__init__(spec)
-        self.log = core.simple_logger("LocalCrawlFinalizer", file_path=os.path.join(WorkspaceManager().get_log_path(),
-                                                                                    self.crawl_specification.name,
-                                                                                    "scrapy.log"))
+        self.log = core.simple_logger("RemoteCrawlFinalizer", file_path=os.path.join(WorkspaceManager().get_log_path(),
+                                                                                     self.crawl_specification.name,
+                                                                                     "scrapy.log"))
 
     def finalize_crawl(self, data: {} = None):
         self.log.info("Finalizing crawl ...")
@@ -99,6 +99,8 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
             with open(log_filepath, mode="r", encoding="utf-8") as log_filename:
                 log_content = log_filename.read()
                 # TODO: add this content to a dict in order to compose http request
+
+        # TODO: send away the http request
 
         self.log.info("Done finalizing crawl.")
 

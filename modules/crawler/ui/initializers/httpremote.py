@@ -6,7 +6,7 @@ from core.QtExtensions import HorizontalContainer, SimpleErrorInfo
 from modules.crawler.controller import CrawlerController
 
 
-class MessageQueueCrawlView(HorizontalContainer):
+class HttpRemoteCrawlView(HorizontalContainer):
 
     def __init__(self):
         super().__init__()
@@ -28,7 +28,7 @@ class MessageQueueCrawlView(HorizontalContainer):
         self.crawl_name_input = QLineEdit()
         self.crawl_name_input.setPlaceholderText("Crawl name")
 
-        self.crawl_button = QPushButton("Send to Queue")
+        self.crawl_button = QPushButton("Send to specified URI")
 
         new_crawl_layout = QVBoxLayout()
         new_crawl_layout.addWidget(self.crawl_name_input)
@@ -41,12 +41,12 @@ class MessageQueueCrawlView(HorizontalContainer):
         self.addWidget(queue_input_group)
         self.addWidget(new_crawl_input_group)
 
-        self.cnt = MessageQueueController(self)
+        self.cnt = HttpRemoteQueueController(self)
 
 
-class MessageQueueController(core.ViewController):
+class HttpRemoteQueueController(core.ViewController):
 
-    def __init__(self, view: MessageQueueCrawlView):
+    def __init__(self, view: HttpRemoteCrawlView):
         super().__init__(view)
 
         self.master_cnt = None
@@ -113,8 +113,9 @@ class MessageQueueController(core.ViewController):
         json_text = self.master_cnt.crawl_specification.serialize()
 
         SimpleErrorInfo("Feature not yet implemented",
-                        "Sending crawl specifications to a message queue "
+                        "Sending crawl specifications via http "
                         "has not yet been implemented, please be patient.").exec()
 
         # TODO: create http request with specification json (json_text)
         #  and send it to the specified message queue location (queue_location)
+        #  either split specification into one per start url here or where the request is received
