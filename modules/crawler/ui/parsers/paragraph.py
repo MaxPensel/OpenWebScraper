@@ -30,7 +30,7 @@ from modules.crawler.model import CrawlSpecification
 from modules.crawler.scrapy.parsers import ParagraphParser
 
 
-class ParagraphParserSettingsView(HorizontalContainer):
+class ParagraphParserSettingsView(QHBoxLayout):
 
     def __init__(self):
         super().__init__()
@@ -40,6 +40,7 @@ class ParagraphParserSettingsView(HorizontalContainer):
         langdetect_behavior_group = QGroupBox("Langdetect Behavior")
         langdetect_behavior_group.setLayout(QVBoxLayout())
         langdetect_behavior_group.layout().addWidget(self.keep_langdetect_errors)
+        langdetect_behavior_group.layout().addStretch()
 
         # language selection
         self.lang_checks = dict()
@@ -91,6 +92,7 @@ class ParagraphParserSettingsController(ViewController):
             if lang in ParagraphParser.DEFAULT_ALLOWED_LANGUAGES:
                 self._view.lang_checks[lang].setChecked(True)
             self._view.lang_area.layout().addWidget(self._view.lang_checks[lang])
+        self._view.lang_area.layout().addStretch()
 
         # setup default xpath expressions
         self._view.xpath_area.setPlainText("\n".join(ParagraphParser.DEFAULT_XPATHS))

@@ -37,7 +37,7 @@ from modules.crawler.model import CrawlSpecification
 LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
 
 
-class LocalCrawlView(HorizontalContainer):
+class LocalCrawlView(QHBoxLayout):
 
     def __init__(self):
         super().__init__()

@@ -28,7 +28,7 @@ from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QWidget, QLayout
 
 import core
-from core.QtExtensions import saturate_combobox, build_save_file_connector
+from core.QtExtensions import saturate_combobox, build_save_file_connector, delete_layout
 from core.Workspace import WorkspaceManager
 from crawlUI import ModLoader
 from modules import crawler
@@ -86,8 +86,8 @@ class CrawlerController(core.ViewController):
         saturate_combobox(self._view.initializer_select, crawler.INITIALIZER_WIDGETS.keys(), include_empty=False)
         self._view.initializer_select.setCurrentIndex(self._view.initializer_select.findText(crawler.INITIALIZER_DEFAULT))
 
-        self.register_parser_view(crawler.PARSER_WIDGETS[crawler.PARSER_DEFAULT])
-        self.register_initializer_view(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT])
+        self.register_sub_view(crawler.PARSER_WIDGETS[crawler.PARSER_DEFAULT], self._view.parser_settings_container.layout())
+        self.register_sub_view(crawler.INITIALIZER_WIDGETS[crawler.INITIALIZER_DEFAULT], self._view.initializer_container.layout())
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -122,7 +122,18 @@ class CrawlerController(core.ViewController):
                                       filemanager.save_blacklist_content,
                                       filemanager.get_blacklist_filenames))
 
-        self._view.initializer_select.currentIndexChanged.connect(self.switch_initializer_view)
+        # sub view switching
+        self._view.parser_select.currentIndexChanged.connect(
+            lambda: self.switch_sub_view(crawler.PARSER_WIDGETS,
+                                         self._view.parser_settings_container.layout(),
+                                         self._view.parser_select)
+        )
+
+        self._view.initializer_select.currentIndexChanged.connect(
+            lambda: self.switch_sub_view(crawler.INITIALIZER_WIDGETS,
+                                         self._view.initializer_container.layout(),
+                                         self._view.initializer_select)
+        )
 
         # trigger model updates
         self._view.crawl_specification_view.url_area.textChanged.connect(self.update_model)
@@ -142,6 +153,21 @@ class CrawlerController(core.ViewController):
         blacklist_completer.setModel(blacklist_model)
         blacklist_completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self._view.crawl_specification_view.blacklist_input.setCompleter(blacklist_completer)
+
+    def switch_sub_view(self, view_dict, layout, combobox):
+        key = combobox.currentText()
+        self.register_sub_view(view_dict[key], layout)
+
+    def register_sub_view(self, view_classpath, layout):
+        view_class = core.get_class(view_classpath)
+        if issubclass(view_class, QLayout):
+            view = view_class()
+            if layout.count() > 1:
+                prev_layout = layout.itemAt(1)
+                delete_layout(prev_layout)
+                layout.removeItem(prev_layout)
+            layout.addLayout(view)
+            view.cnt.register_master_cnt(self)
 
     def switch_parser_view(self):
         key = self._view.parser_select.currentText()

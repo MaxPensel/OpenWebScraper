@@ -80,10 +80,9 @@ class CrawlerWidget(QSplitter):
         self.setOrientation(Qt.Vertical)
 
         self.addWidget(self.crawl_specification_view)
-
         self.addWidget(self.parser_settings_container)
-
         self.addWidget(self.initializer_container)
+        self.setSizes([450, 250, 100])
 
         self.cnt = CrawlerController(self)
 

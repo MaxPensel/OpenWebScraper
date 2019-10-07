@@ -205,3 +205,15 @@ def reset_element(element):
         element.setText("")
     else:
         core.MASTER_LOGGER.warning("No routine for resetting element of type {0}".format(type(element)))
+
+
+def delete_layout(layout):
+    if isinstance(layout, QLayout):
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                delete_layout(widget)
+                layout.removeItem(widget)

@@ -29,7 +29,7 @@ from core.QtExtensions import HorizontalContainer, SimpleErrorInfo
 from modules.crawler.controller import CrawlerController
 
 
-class HttpRemoteCrawlView(HorizontalContainer):
+class HttpRemoteCrawlView(QHBoxLayout):
 
     def __init__(self):
         super().__init__()
