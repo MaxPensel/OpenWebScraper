@@ -21,6 +21,8 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 from PyQt5 import QtCore
+from PyQt5.Qt import Qt
+from PyQt5.QtGui import QSyntaxHighlighter
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox, QComboBox, \
     QPlainTextEdit, QFrame
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
@@ -101,6 +103,7 @@ class SimpleMessageBox(QMessageBox):
         self.setText(text)
         self.setInformativeText(details)
         self.setWindowTitle(title)
+        self.setTextFormat(Qt.RichText)
 
 
 class SimpleYesNoMessage(SimpleMessageBox):
@@ -118,6 +121,23 @@ class SimpleErrorInfo(SimpleMessageBox):
     def __init__(self, title, text, details=""):
         super().__init__(title, text, details, QMessageBox.Critical)
         self.setStandardButtons(QMessageBox.Ok)
+
+
+class LineHighlighter(QSyntaxHighlighter):
+
+    def highlightBlock(self, text: str) -> None:
+        for checker, line_format, format_else in self.color_conditions:
+            if checker(text):
+                self.setFormat(0, len(text), line_format)
+                break
+            elif format_else:
+                self.setFormat(0, len(text), format_else)
+                break
+
+    def append_rule(self, rule):
+        if not hasattr(self, "color_conditions"):
+            self.color_conditions = list()
+        self.color_conditions.append(rule)
 
 ###
 # Several reoccurring routines to handle Qt Elements

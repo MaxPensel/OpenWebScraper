@@ -43,7 +43,7 @@ def detect_valid_urls(urls_in):
     invalid = list()
     urls = list()
     for line in urls_in:
-        if line:
+        if line and not line.startswith("#"):  # ignore empty lines and comments
             lines += 1
             validator_result = validators.url(line)
             if not validator_result:

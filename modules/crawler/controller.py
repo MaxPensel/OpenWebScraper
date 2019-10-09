@@ -23,7 +23,9 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 
+import validators
 from PyQt5 import sip
+from PyQt5.Qt import Qt
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QWidget, QLayout
 
@@ -66,8 +68,6 @@ class CrawlerController(core.ViewController):
         Should not further adjust layouts or labels!
         """
 
-        # self._view.blacklist_save.setEnabled(False)
-        # self._view.url_save.setEnabled(False)
         self._view.crawl_specification_view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
         saturate_combobox(self._view.crawl_specification_view.url_select,
                           filemanager.get_url_filenames())
@@ -78,6 +78,13 @@ class CrawlerController(core.ViewController):
 
         self._view.crawl_specification_view.url_delete.setDisabled(True)
         self._view.crawl_specification_view.blacklist_delete.setDisabled(True)
+
+        self._view.crawl_specification_view.url_highlighter.append_rule(
+            (lambda l: l.startswith("#"), Qt.darkMagenta, None)
+        )
+        self._view.crawl_specification_view.url_highlighter.append_rule(
+            (lambda l: validators.url(l), Qt.darkGreen, Qt.red)
+        )
 
         saturate_combobox(self._view.parser_select, crawler.PARSER_WIDGETS.keys(), include_empty=False)
         self._view.parser_select.setCurrentIndex(

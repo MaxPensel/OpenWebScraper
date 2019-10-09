@@ -24,10 +24,10 @@ from PyQt5.QtGui import QCursor
 from PyQt5.Qt import Qt
 
 import core
-from core.QtExtensions import VerticalContainer, HorizontalSeparator
+from core.QtExtensions import VerticalContainer, HorizontalSeparator, LineHighlighter
 from modules.crawler.controller import CrawlerController
 from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QPushButton, QSplitter, \
-    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy, QFrame, QSpacerItem
+    QComboBox, QGroupBox, QVBoxLayout, QLabel, QWidget, QSizePolicy, QFrame, QSpacerItem, QTextEdit
 from PyQt5.QtWidgets import QHBoxLayout
 import qtawesome
 
@@ -106,7 +106,8 @@ class CrawlSpecificationView(QSplitter):
         self.url_delete.setProperty("class", "iconbutton")
         self.url_delete.setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.url_area = QPlainTextEdit()
+        self.url_area = QTextEdit()
+        self.url_highlighter = LineHighlighter(self.url_area.document())
 
         url_selection_layout = QHBoxLayout()
         url_selection_layout.addWidget(self.url_select)
