@@ -25,16 +25,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-import importlib
 import logging
 import sys
 import os
 
-if __name__ == '__main__':
-    # make sure the project root is on the PYTHONPATH
-    sys.path.append(os.path.abspath(os.path.join(os.getcwd(), os.pardir, os.pardir)))
-
-from modules.crawler.scrapy.pipelines import LocalCrawlFinalizer
 from modules.crawler.model import CrawlSpecification
 
 import pandas
@@ -138,7 +132,7 @@ def create_spider(settings, start_url, crawler_name):
                                             file_path=os.path.join(WorkspaceManager().get_workspace(),
                                                                    WS_LOG_DIR,
                                                                    self.crawl_specification.name,
-                                                                   name + ".log")
+                                                                   crawler_name + ".log")
                                             )
             for hand in self.s_log.handlers:
                 self.logger.logger.addHandler(hand)

@@ -280,21 +280,22 @@ class LocalCrawlController(core.ViewController):
 
 def start_scrapy(settings_path):
     python_exe = os.path.abspath(Settings().python)
+    scrapy_script = os.path.join("modules","crawler", "scrapy_wrapper.py")
     LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
     try:
         if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-            subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+            subprocess.Popen(python_exe + " " + scrapy_script + " \"" + settings_path + "\"",
                              stdout=sys.stdout,
                              shell=True,
                              start_new_session=True,
-                             cwd="modules/crawler/",
+                             cwd=".",
                              creationflags=WindowsCreationFlags.DETACHED_PROCESS)
         else:
-            subprocess.Popen(python_exe + " scrapy_wrapper.py \"" + settings_path + "\"",
+            subprocess.Popen(python_exe + " " + scrapy_script + " \"" + settings_path + "\"",
                              stdout=sys.stdout,
                              shell=True,
                              start_new_session=True,
-                             cwd="modules/crawler/",
+                             cwd=".",
                              close_fds=True)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
