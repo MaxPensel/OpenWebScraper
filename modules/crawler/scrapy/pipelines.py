@@ -117,7 +117,7 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
                 # TODO: add this content to a dict in order to compose http request
 
         # fetching log contents
-        for log_filename in os.listdir(os.path.join(WorkspaceManager().get_log_path(), "sep init")):
+        for log_filename in os.listdir(os.path.join(WorkspaceManager().get_log_path(), self.crawl_specification.name)):
             log_filepath = os.path.abspath(log_filename)
             with open(log_filepath, mode="r", encoding="utf-8") as log_filename:
                 log_content = log_filename.read()
