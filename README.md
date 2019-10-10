@@ -20,21 +20,43 @@ Feel free to contact me with specific questions
 # Installation
 
 The installation process might be simplified in the future, for now, several steps need to be taken.
-A Python3.7 environment is required and it is recommended to obtain this through Anaconda.
-1. Install [Anaconda](https://www.anaconda.com/distribution/#download-section) with python3.7.
-2. Download and install Visual Studio Buildtools [here](https://visualstudio.microsoft.com/de/downloads/). (Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools)
-3. Get the SpiderGUI sources.
-  * Either Download [master.zip](https://github.com/MaxPensel/SpiderGUI/archive/master.zip) and unpack in your chosen installation directory.
-__OR__
-  * Install git and clone this repository. (This method is recommended to easily stay up to date with the development)
-```ShellSession
-git clone git@github.com:MaxPensel/SpiderGUI.git
-```
-4. Open up the anaconda prompt and navigate to your installation directory. Execute 
-```ShellSession
-./Install.bat
-```
-Even though executing batch files works with double-click as well, an activated python environment is required for this script to work, e.g. the anaconda base environment.
+A Python3.7 environment is required and the necessary dependencies need to be provided.
+
+1. Install Python 3.7.4 from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
+You can also install python via [Anaconda](https://www.anaconda.com/distribution/#download-section),
+just make sure that you do the following command line steps in the correct environment in an
+anaconda console.
+
+2. Install swig with [these](http://www.swig.org/download.html) steps  
+
+3. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
+Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools.
+What you get is a visual studio installer, use it to select and install ```C++ Built Tools```.
+
+4. Get the SpiderGUI sources.
+    * Either Download the zip file from [GitHub](https://github.com/MaxPensel/SpiderGUI/) and unpack in your chosen installation directory.
+    
+    __OR__
+
+    * Install git and clone this repository. This method is recommended to easily stay up to date with the development.
+      Execute this command in a windows command prompt within your installation directory.
+  
+          git clone git@github.com:MaxPensel/SpiderGUI.git        
+      Staying up-to-date with development is then as simple as executing
+ 
+          git pull
+      in your installation directory.
+
+5. If you installed python without Anaconda, use the command prompt and 
+execute ```Install.bat``` inside the installation directory.
+If you have chosen to go through anaconda, then open up the 
+anaconda console, make sure the correct environment is active, navigate to your
+OpenWebScraper directory and then execute the command ```Install.bat```
+
+6. If you have not seen any error messages during this process, you can start
+scraping the web by executing ```python crawlUI.py``` in the correct environment.
+If you have installed python directly (not with anaconda), then you may execute
+crawlUI.bat with the good old double-click from your explorer.
 
 # Documentation
 

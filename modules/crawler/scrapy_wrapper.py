@@ -29,6 +29,10 @@ import logging
 import sys
 import os
 
+if __name__ == "__main__":
+    # scrapy_wrapper is expected to be executed from repository root and repository root is needed on PATH
+    sys.path.append(os.path.abspath(os.path.curdir))
+
 from modules.crawler.model import CrawlSpecification
 
 import pandas

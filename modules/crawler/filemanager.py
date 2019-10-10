@@ -80,7 +80,10 @@ def _get_crawl_path(crawlname):
 
 def _get_data_path():
     """ Returns '%workspace-dir%/data/' """
-    return os.path.join(WorkspaceManager().get_workspace(), data_dir)
+    data_path = os.path.join(WorkspaceManager().get_workspace(), data_dir)
+    if not os.path.exists(data_path):
+        os.makedirs(data_path, exist_ok=True)
+    return data_path
 
 
 def get_running_specification_path(crawl_name):
