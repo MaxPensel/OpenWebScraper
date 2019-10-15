@@ -25,7 +25,9 @@ import logging
 import os
 import tempfile
 
+
 import textract
+import textract_pdf
 from langdetect import detect
 from langdetect.lang_detect_exception import LangDetectException
 from scrapy import Item, Field
@@ -99,7 +101,7 @@ class ParagraphParser(ResponseParser):
         tmp_file.write(response.body)
         tmp_file.close()
         try:
-            content = textract.process(tmp_file.name)
+            content = textract_pdf.process(tmp_file.name)
         except CommandLineError as exc:  # Catching either ExtensionNotSupported or MissingFileError
             self.log(logging.ERROR, "[parse_pdf] - {0}: {1}".format(type(exc).__name__, exc))
             return []  # In any case, text extraction failed so no items were parsed
