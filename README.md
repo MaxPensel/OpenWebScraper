@@ -27,7 +27,8 @@ You can also install python via [Anaconda](https://www.anaconda.com/distribution
 just make sure that you do the following command line steps in the correct environment in an
 anaconda console.
 
-2. Install swig with [these](http://www.swig.org/download.html) steps  
+2. Install swig with [these](https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/) steps.
+(Scroll down to windows instructions)  
 
 3. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
 Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools.
