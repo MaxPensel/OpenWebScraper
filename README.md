@@ -21,26 +21,26 @@ Feel free to contact me with specific questions
 
 The installation process might be simplified in the future, for now, several steps need to be taken.
 A Python3.7 environment is required and the necessary dependencies need to be provided.
+If you want to reduce the need for using the command line, see the
+["How to rely less on the command line"](#How_to_rely_less_on_the_command_line) section below.
 
-1. Install Python 3.7.4 from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
+1. Install Python 3.7.4 (or newer) from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
 You can also install python via [Anaconda](https://www.anaconda.com/distribution/#download-section),
 just make sure that you do the following command line steps in the correct environment in an
 anaconda console.
 
-2. Install swig with [these](https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/) steps.
-(Scroll down to windows instructions)  
-
-3. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
+2. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
 Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools.
 What you get is a visual studio installer, use it to select and install ```C++ Built Tools```.
 
-4. Get the SpiderGUI sources.
+3. Get the SpiderGUI sources.
     * Either Download the zip file from [GitHub](https://github.com/MaxPensel/SpiderGUI/) and unpack in your chosen installation directory.
     
     __OR__
 
-    * Install git and clone this repository. This method is recommended to easily stay up to date with the development.
-      Execute this command in a windows command prompt within your installation directory.
+    * Download and install git, for example from [https://git-scm.com/download/win](https://git-scm.com/download/win) and clone this repository.
+    This method is recommended to easily stay up to date with the development.
+      Execute this command in a windows command prompt within your chosen installation directory.
   
           git clone git@github.com:MaxPensel/SpiderGUI.git        
       Staying up-to-date with development is then as simple as executing
@@ -54,10 +54,67 @@ If you have chosen to go through anaconda, then open up the
 anaconda console, make sure the correct environment is active, navigate to your
 OpenWebScraper directory and then execute the command ```Install.bat```
 
+   __Important__: ```Install.bat``` opens up a console window, if anything red pops up
+   in there, the installation most likely failed.
+   Copy the entire output seen in this window (select text and right-click)
+   and either open an issue on [GitHub](https://github.com/MaxPensel/OpenWebScraper/issues)
+   or help yourself with [Ecosia](https://www.ecosia.org/) (other search engines
+   are available).
+
 6. If you have not seen any error messages during this process, you can start
-scraping the web by executing ```python crawlUI.py``` in the correct environment.
+scraping the web by executing ```python crawlUI.py``` in the correct anaconda environment.
 If you have installed python directly (not with anaconda), then you may execute
 crawlUI.bat with the good old double-click from your explorer.
+
+## How to rely less on the command line
+
+First, carefully read the steps above, as most of them need to be executed anyway.
+For relying less on the command line, it is recommended to __not__ go through the anaconda
+installation, but installing python directly (Step 1).
+
+__Attention__:
+If you go through python directly, the only command line interaction that
+is required of you is to clone (and once in a while pull) the git repository
+to stay up-to-date with the development. If you choose to download the 
+repository as a zip file, no command line interaction is required in the first place.
+The alternative that is described in the following uses the development
+IDE VS Code (from Microsoft) which offers python and git integration.
+If you have no business looking into the code, this alternative is __not__
+recommended, unless you really dislike the command line.
+
+Step 2 is inevitable (for now), execute it now.
+
+Before Step 3, go to [https://code.visualstudio.com/](https://code.visualstudio.com/)
+and download VS Code. Now download and install git 
+([https://git-scm.com/download/win](https://git-scm.com/download/win)) but do not
+clone your repository from the command line as instructed above (Step 3).
+Your VS Code now has a git integration. Open VS Code, and press ```Strg+Shift+P```.
+
+If nothing happens, do the following, otherwise skip the following:
+Click on the settings-cog (bottom left), select Keyboard Shortcuts and 
+search for "clone" in the search bar that appeared on the top. Assign a
+key-binding to the git.clone command (perhaps ```Strg+Shift+P``` might
+suit you).
+
+Enter this repositories URI in the bar that popps up: 
+```https://github.com/MaxPensel/OpenWebScraper```
+and select the directory you want to have OpenWebScraper in.
+
+Execute Step 5 from above (if you used python installation, simply use the explorer to
+find the Install.bat and just double-click it).
+
+Now you can either start OpenWebScraper as in Step 6 above (double-click crawlUI.bat),
+or you may open crawlUI.py in VS Code. VS Code will offer (bottom-right) to install
+the python extension (do that).
+Now you can simply click the run button (should be top-right) when opening crawlUI.py.
+If everything worked the OpenWebScraper user interface (UI) will pop up,
+if not, perhaps you need to configure how VS Code executes crawlUI.py using python.
+
+The neat thing about VS Code is that it offers to frequently auto-fetch updates from github.
+Once a new commit is in place, you can easily pull the new sources to obtain the
+newest version of OpenWebScraper, without having to check for new versions manually.
+
+
 
 # Documentation
 
