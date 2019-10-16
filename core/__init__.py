@@ -25,6 +25,7 @@ import os
 import sys
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
 
+from core import QtExtensions
 
 def simple_logger(modname="core", file_path=None, console_level=INFO, file_level=INFO) -> Logger:
     """

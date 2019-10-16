@@ -1,0 +1,7 @@
+1.  run command prompt and activate your favourite python3 environment, easy version: install anaconda and run anaconda console in administrator mode
+2.  to verify that you correctly executed step 1, check if your python interpreter is above version 3: python --version
+3.  navigate to the directory of the SpiderGUI: cd /d "%COPY_PATH_TO_DIR_HERE_FROM_EXPLORER%"
+4.  run: .\Install.bat
+5.  Run from anaconda console in SpiderGUI dir: python crawlUI.py
+### (for now only running from console from environment that was used to install, e.g. anaconda (base) )
+### 5b. Or, edit crawlUI.bat and put the path to your python executable, e.g. C:\ProgramData\Anaconda3\python.exe in front of crawlUI.py, then double click crawlUI.bat to run the UI
