@@ -87,13 +87,13 @@ Step 2 is inevitable (for now), execute it now.
 Before Step 3, go to [https://code.visualstudio.com/](https://code.visualstudio.com/)
 and download VS Code. Now download and install git 
 ([https://git-scm.com/download/win](https://git-scm.com/download/win)) but do not
-clone your repository from the command line as instructed above (Step 3).
-Your VS Code now has a git integration. Open VS Code, and press ```Strg+Shift+P```.
+clone the repository from the command line as instructed above (Step 3).
+Your VS Code now has a git integration. Open VS Code, and press ```Ctrl+Shift+P```.
 
 If nothing happens, do the following, otherwise skip the following:
 Click on the settings-cog (bottom left), select Keyboard Shortcuts and 
 search for "clone" in the search bar that appeared on the top. Assign a
-key-binding to the git.clone command (perhaps ```Strg+Shift+P``` might
+key-binding to the git.clone command (perhaps ```Ctrl+Shift+P``` might
 suit you).
 
 Enter this repositories URI in the bar that popps up: 
