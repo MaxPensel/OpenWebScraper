@@ -25,8 +25,6 @@ import logging
 import os
 import tempfile
 
-
-import textract
 import textract_pdf
 from langdetect import detect
 from langdetect.lang_detect_exception import LangDetectException

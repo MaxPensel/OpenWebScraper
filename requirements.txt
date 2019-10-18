@@ -9,7 +9,6 @@ constantly==15.1.0
 cryptography==2.7
 cssselect==1.0.3
 docx2txt==0.6
-EbookLib==0.15
 hyperlink==19.0.0
 idna==2.8
 incremental==17.5.0
