@@ -28,10 +28,10 @@ A Python3.7 environment is required and the necessary dependencies need to be pr
 If you want to reduce the need for using the command line, see the
 ["How to rely less on the command line"](#How_to_rely_less_on_the_command_line) section below.
 
-1. Install Python 3.7.4 (or newer) from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
+1. Install Python 3.7.4 from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
 You can also install python via [Anaconda](https://www.anaconda.com/distribution/#download-section),
-just make sure that you do the following command line steps in the correct environment in an
-anaconda console.
+just make sure that you do the following command line steps in the correct environment
+(Python 3.7.4) in an anaconda console.
 
 2. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
 Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools.
