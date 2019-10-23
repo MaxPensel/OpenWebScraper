@@ -35,7 +35,7 @@ queuelib==1.5.0
 Scrapy==1.7.2
 service-identity==18.1.0
 six==1.10.0
-Twisted==19.2.1
+Twisted==19.7.0
 validators==0.13.0
 w3lib==1.20.0
 xlrd==1.0.0
