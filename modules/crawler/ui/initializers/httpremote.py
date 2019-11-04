@@ -28,6 +28,9 @@ import core
 from core.QtExtensions import HorizontalContainer, SimpleErrorInfo
 from modules.crawler.controller import CrawlerController
 
+import requests
+import json
+
 
 class HttpRemoteCrawlView(QHBoxLayout):
 
@@ -134,6 +137,9 @@ class HttpRemoteQueueController(core.ViewController):
         queue_location = self._view.queue_input.displayText()
 
         json_text = self.master_cnt.crawl_specification.serialize()
+
+        # siehe Code Nicole
+        # r = requests.post('http://localhost:5000/tasks/', json=json_text)
 
         SimpleErrorInfo("Feature not yet implemented",
                         "Sending crawl specifications via http "
