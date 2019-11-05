@@ -118,6 +118,9 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
                                                                                      "scrapy.log"))
 
     def finalize_crawl(self, data: {} = None):
+        """This method is automatically called after the entire crawl has finished, gather the crawl results from
+        the workspace (using filemanager) and compose an http request for further processing"""
+
         self.log.info("Finalizing crawl ...")
 
         # maximum size for message chunk (100 MB)
@@ -125,9 +128,6 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
 
         if data is None:
             data = dict()
-
-        # TODO: this method is automatically called after the entire crawl has finished, gather the crawl results from
-        #       the workspace (using filemanager) and compose an http request for further processing
 
         # fetching crawl results
         log_path = os.path.join(WorkspaceManager().get_log_path())
@@ -188,8 +188,6 @@ class RemoteCrawlFinalizer(CrawlFinalizer):
         #     with open(log_filepath, mode="r", encoding="utf-8") as logfile:
         #         log_content = logfile.read()
         #         self.log.info(log_content)
-                # TODO: add this content to a dict in order to compose http request
-
 
         self.log.info("Clearing data directory.")
         data_path = filemanager._get_data_path()
