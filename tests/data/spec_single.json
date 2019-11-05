@@ -1,0 +1,26 @@
+{
+  "blacklist": [],
+  "finalizers": {
+    "modules.crawler.scrapy.pipelines.RemoteCrawlFinalizer": {}
+  },
+  "name": "spec_single",
+  "parser": "modules.crawler.scrapy.parsers.ParagraphParser",
+  "parser_data": {
+    "allowed_languages": [
+      "de",
+      "en"
+    ],
+    "keep_langdetect_errors": false,
+    "xpaths": [
+      "//p",
+      "//td"
+    ]
+  },
+  "pipelines": {
+    "modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300
+  },
+  "urls": [
+    "https://crawlme.maxpensel.de"
+  ],
+  "workspace": "default_workspace"
+}
