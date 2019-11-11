@@ -1,9 +1,12 @@
-# SpiderGUI
+# OpenWebScraper
 
 This is a simple modular graphical endpoint for the [Scrapy](https://scrapy.org/) python web-crawler library.
-It allows to issue crawls with a basic list of urls and prefix-blacklist.
+It allows to issue crawls with a basic list of urls and regex-blacklist.
 It will also support several post-processing and analytical features that are heavily based on the [pandas](http://pandas.pydata.org/) library.
-The graphical user interface (GUI) and its features are specifically tailored to the german DFG research project ["Die Konstruktion organisationaler Identität und der Einfluss von Geschichte"](http://gepris.dfg.de/gepris/projekt/398074981?context=projekt&task=showDetail&id=398074981&) at the [TU Ilmenau](https://www.tu-ilmenau.de/).
+The graphical user interface (GUI) and its initial extent of features are
+specifically tailored to the german DFG research project 
+["Die Konstruktion organisationaler Identität und der Einfluss von Geschichte"](http://gepris.dfg.de/gepris/projekt/398074981?context=projekt&task=showDetail&id=398074981&)
+at the [TU Ilmenau](https://www.tu-ilmenau.de/).
 
 
 # Remarks
@@ -12,10 +15,11 @@ This software is still in early development. It is primarily developed with wind
 Seeing as python, PyQt5, etc. are platform independend, it should run on unix-based systems as well, although this is not extensively tested yet.
 
 As a user, if you encounter any bugs or unexpected behaviour, please report them through github issues.
-A simple in-app documentation is still planned to 
+A simple in-app documentation is still planned to provide explanations for
+the behavior of some of the UI features.
 As a developer, be aware that some of the design choices may not be fully incorporated at every level yet.
 There is some code documentation, but as is to be expected of an early development stage, it is most likely insufficient to fully understand everything.
-Feel free to contact me with specific questions
+Feel free to contact me with specific questions.
 
 # Installation
 
@@ -24,10 +28,10 @@ A Python3.7 environment is required and the necessary dependencies need to be pr
 If you want to reduce the need for using the command line, see the
 ["How to rely less on the command line"](#How_to_rely_less_on_the_command_line) section below.
 
-1. Install Python 3.7.4 (or newer) from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
+1. Install Python 3.7.4 from the official website [https://www.python.org/downloads/](https://www.python.org/downloads/).
 You can also install python via [Anaconda](https://www.anaconda.com/distribution/#download-section),
-just make sure that you do the following command line steps in the correct environment in an
-anaconda console.
+just make sure that you do the following command line steps in the correct environment
+(Python 3.7.4) in an anaconda console.
 
 2. Download and install Visual Studio Buildtools from [here](https://visualstudio.microsoft.com/de/downloads/).
 Scroll down a bit, you'll find tools for visual studio 2019, download the Buildtools.
@@ -87,13 +91,13 @@ Step 2 is inevitable (for now), execute it now.
 Before Step 3, go to [https://code.visualstudio.com/](https://code.visualstudio.com/)
 and download VS Code. Now download and install git 
 ([https://git-scm.com/download/win](https://git-scm.com/download/win)) but do not
-clone your repository from the command line as instructed above (Step 3).
-Your VS Code now has a git integration. Open VS Code, and press ```Strg+Shift+P```.
+clone the repository from the command line as instructed above (Step 3).
+Your VS Code now has a git integration. Open VS Code, and press ```Ctrl+Shift+P```.
 
 If nothing happens, do the following, otherwise skip the following:
 Click on the settings-cog (bottom left), select Keyboard Shortcuts and 
 search for "clone" in the search bar that appeared on the top. Assign a
-key-binding to the git.clone command (perhaps ```Strg+Shift+P``` might
+key-binding to the git.clone command (perhaps ```Ctrl+Shift+P``` might
 suit you).
 
 Enter this repositories URI in the bar that popps up: 

@@ -6,10 +6,8 @@ beautifulsoup4==4.5.3
 cffi==1.12.3
 chardet==2.3.0
 constantly==15.1.0
-cryptography==2.7
 cssselect==1.0.3
 docx2txt==0.6
-EbookLib==0.15
 hyperlink==19.0.0
 idna==2.8
 incremental==17.5.0
@@ -37,7 +35,7 @@ queuelib==1.5.0
 Scrapy==1.7.2
 service-identity==18.1.0
 six==1.10.0
-Twisted==19.2.1
+Twisted==19.7.0
 validators==0.13.0
 w3lib==1.20.0
 xlrd==1.0.0
