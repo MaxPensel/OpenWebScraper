@@ -27,9 +27,7 @@ from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPu
 
 from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit
 import core
-
-LOG = core.simple_logger(modname="template", file_path=core.MASTER_LOG)
-
+from modules.template import LOG
 
 class TemplateWidget(VerticalContainer):
     """

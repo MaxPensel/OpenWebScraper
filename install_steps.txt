@@ -1,7 +1,14 @@
-1.  run command prompt and activate your favourite python3 environment, easy version: install anaconda and run anaconda console in administrator mode
-2.  to verify that you correctly executed step 1, check if your python interpreter is above version 3: python --version
-3.  navigate to the directory of the SpiderGUI: cd /d "%COPY_PATH_TO_DIR_HERE_FROM_EXPLORER%"
-4.  run: .\Install.bat
-5.  Run from anaconda console in SpiderGUI dir: python crawlUI.py
-### (for now only running from console from environment that was used to install, e.g. anaconda (base) )
-### 5b. Or, edit crawlUI.bat and put the path to your python executable, e.g. C:\ProgramData\Anaconda3\python.exe in front of crawlUI.py, then double click crawlUI.bat to run the UI
+1.  Install Python 3.7.5 from the official website
+2.  Go to the root of the cloned OWS git directory (in command prompt)
+3.  Create a virtual environment: 'python -m venv venv' (if you did not put python on the PATH variable during install, substitute 'python' in this command with the full location of your python.exe, e.g. 'C:\Users\my-user\Python\python.exe')
+4.  Activate that environment: 'venv\Scripts\activate.bat' (to verify, it should say '(venv)' in from of your command line now)
+5.  Install requirements: 'pip install -r requirements.txt'
+6a. Now you could go to the python sources ('cd src') and execute them with python directly: 'python crawlUI.py' (important: use 'python' here, it will use the correct executable from the virtual environment) OR
+6b. You execute 'pyinstaller OWS.spec' to compile the sources into binary and be able to run OpenWebScraper from 'dist\Open Web Scraper\OWS.exe'
+
+*   If you want to start crawls on your local machine you need to configure the execution of the OWS-scrapy-wrapper (see github for instructions on wrapper).
+    Find the crawler settings file (either 'src\modules\crawler\settings.toml' or 'dist\Open Web Scraper\modules\crawler\settings.toml' depending on Step 6) and provide a command to execute the OWS-scrapy-wrapper
+	in the setting 'scrapy_wrapper_exec'.
+	The simplest way is to use the binaries and provide an absolute (or relative) path to the OWS-scrapy-wrapper.exe. You may also execute the scrapy_wrapper.py by setting
+	scrapy_wrapper_exec = 'PATH\TO\MY\python.exe PATH\TO\scrapy_wrapper.py' but you would have to configure your (or a virtual) python environment to be able to execute OWS-scrapy-wrapper in this way.
+	This is not tested for platforms other than Windows yet. :-/

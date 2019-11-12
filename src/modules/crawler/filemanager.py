@@ -33,11 +33,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-import json
 import os
 import shutil
-import sys
-import traceback
 from urllib.parse import urlparse
 
 import pandas
@@ -45,20 +42,10 @@ import core
 
 from core.Workspace import WorkspaceManager
 from modules.crawler.model import CrawlSpecification
+from modules.crawler import SETTINGS
+from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
-
-# Directories within workspace
-running_crawl_settings_dir = "running"
-data_dir = "data"
-raw_data_dir = "raw"
-
-# File extensions
-url_file_extension = "urls"
-blacklist_file_extension = "blacklist"
-
-# File state flags
-incomplete_flag = "-INCOMPLETE"
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
 
 
 ###
@@ -70,7 +57,7 @@ incomplete_flag = "-INCOMPLETE"
 
 def _get_crawl_raw_path(crawlname):
     """ Returns '%workspace-dir%/data/%crawlname%/raw/' """
-    return os.path.join(_get_crawl_path(crawlname), raw_data_dir)
+    return os.path.join(_get_crawl_path(crawlname), SETTINGS.filemanager["raw_data_dir"])
 
 
 def _get_crawl_path(crawlname):
@@ -80,47 +67,42 @@ def _get_crawl_path(crawlname):
 
 def _get_data_path():
     """ Returns '%workspace-dir%/data/' """
-    data_path = os.path.join(WorkspaceManager().get_workspace(), data_dir)
+    data_path = os.path.join(WorkspaceManager().get_workspace(), SETTINGS.filemanager["data_dir"])
     if not os.path.exists(data_path):
         os.makedirs(data_path, exist_ok=True)
     return data_path
 
 
-def get_running_specification_path(crawl_name):
-    global running_crawl_settings_dir
-    wsm = WorkspaceManager()
-    path = os.path.join(wsm.get_workspace(), running_crawl_settings_dir, crawl_name + ".json")
+def get_crawl_specification(crawl_name):
+    path = os.path.join(_get_crawl_path(), crawl_name + ".json")
     if os.path.exists(path):
         return path
     else:
         return None
 
 
+def get_crawl_log_path(crawl_name):
+    wsm = WorkspaceManager()
+    path = os.path.join(wsm.get_log_path(), crawl_name)
+    return path
+
+
 # get lists of file/directory names
 
 def get_url_filenames():
-    global url_file_extension
     wsm = WorkspaceManager()
 
-    return __get_filenames_of_type("." + url_file_extension, wsm.get_workspace())
+    return __get_filenames_of_type("." + SETTINGS.filemanager["url_file_extension"], wsm.get_workspace())
 
 
 def get_blacklist_filenames():
-    global blacklist_file_extension
     wsm = WorkspaceManager()
 
-    return __get_filenames_of_type("." + blacklist_file_extension, wsm.get_workspace())
+    return __get_filenames_of_type("." + SETTINGS.filemanager["blacklist_file_extension"], wsm.get_workspace())
 
 
 def get_crawlnames():
     return __get_filenames_of_type("", _get_data_path(), directories=True)
-
-
-def get_running_crawls():
-    global running_crawl_settings_dir
-    wsm = WorkspaceManager()
-
-    return __get_filenames_of_type(".json", os.path.join(wsm.get_workspace(), running_crawl_settings_dir))
 
 
 def get_datafiles(crawl_name, abspath=False):
@@ -138,7 +120,7 @@ def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
     incomplete = list()
     for url in urls:
         fname = url2filename(url)
-        if (fname + incomplete_flag) in datafiles:
+        if (fname + SETTINGS.filemanager["incomplete_flag"]) in datafiles:
             incomplete.append(url)
         elif fname not in datafiles:
             incomplete.append(url)
@@ -149,22 +131,16 @@ def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
 
 def get_url_content(filename):
     global url_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + url_file_extension)
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["url_file_extension"])
 
     return __get_file_content(filepath)
 
 
 def get_blacklist_content(filename):
     global blacklist_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + blacklist_file_extension)
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["blacklist_file_extension"])
 
     return __get_file_content(filepath)
-
-
-def load_running_crawl_settings(name):
-    spec = CrawlSpecification()
-    spec.deserialize(open(get_running_specification_path(name), "r").read())
-    return spec
 
 
 def load_crawl_data(crawl: str, url: str, convert: bool = True):
@@ -185,8 +161,7 @@ def save_url_content(content, filename):
         LOG.error("No filename given for saving url content.")
         return
 
-    global url_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + url_file_extension)
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["url_file_extension"])
 
     __save_file_content(content, filepath)
 
@@ -196,8 +171,7 @@ def save_blacklist_content(content, filename):
         LOG.error("No filename given for saving url content.")
         return
 
-    global blacklist_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + blacklist_file_extension)
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["blacklist_file_extension"])
 
     __save_file_content(content, filepath)
 
@@ -223,12 +197,10 @@ def save_crawl_settings(name, settings: CrawlSpecification):
         LOG.error("No crawl name given.")
         return
 
-    global running_crawl_settings_dir
     try:
-        os.makedirs(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir), exist_ok=True)
-        filepath = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, name + ".json")
+        filepath = os.path.join(_get_crawl_path(name), name + ".json")
 
-        __save_file_content(settings.serialize(pretty=False), filepath)
+        __save_file_content(settings.serialize(), filepath)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
         return False
@@ -246,8 +218,7 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
     :param incomplete: If True then filename is extended with incomplete_flag
     :return:
     """
-    global incomplete_flag
-    inc = incomplete_flag if incomplete else ""
+    inc = SETTINGS.filemanager["incomplete_flag"] if incomplete else ""
     fullpath = os.path.join(_get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if overwrite or not os.path.exists(fullpath):
@@ -256,8 +227,7 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
 
 
 def add_to_csv(crawl: str, domain: str, data: dict, incomplete=True):
-    global incomplete_flag
-    inc = incomplete_flag if incomplete else ""
+    inc = SETTINGS.filemanager["incomplete_flag"] if incomplete else ""
     fullpath = os.path.join(_get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if os.path.exists(fullpath):
@@ -308,32 +278,11 @@ def complete_csv(crawl: str, domain: str):
     :param domain: Name of the crawled domain/start_url.
     :return:
     """
-    global incomplete_flag
     crawl_path = _get_crawl_raw_path(crawl)
-    fullpath_inc = os.path.join(crawl_path, domain + incomplete_flag + ".csv")
+    fullpath_inc = os.path.join(crawl_path, domain + SETTINGS.filemanager["incomplete_flag"] + ".csv")
     fullpath_com = os.path.join(crawl_path, domain + ".csv")
 
     shutil.move(fullpath_inc, fullpath_com)
-
-
-def move_crawl_specification(crawl):
-    """
-    Move the crawl specification file from running dir to crawl path.
-    :param crawl:
-    :return:
-    """
-    global running_crawl_settings_dir
-    running_filename = crawl + ".json"
-    running_file = os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir, running_filename)
-    destination = os.path.join(_get_crawl_path(crawl), running_filename)
-
-    try:
-        shutil.move(running_file, destination)
-    except FileNotFoundError as exc:
-        LOG.error("Could not move crawl specification to crawl data. The respective json file was not found in the "
-                  "running directory.")
-
-    delete_and_clean(os.path.join(WorkspaceManager().get_workspace(), running_crawl_settings_dir))
 
 
 ###
@@ -372,6 +321,7 @@ def __get_file_content(path):
 
 def __save_file_content(content, path):
     try:
+        os.makedirs(os.path.abspath(os.path.join(path, os.pardir)), exist_ok=True)
         with open(path, "w") as out_file:
             out_file.write(content)
         LOG.info("Content successfully saved to {0}".format(path))

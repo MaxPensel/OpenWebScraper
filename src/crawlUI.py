@@ -21,6 +21,9 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from simple_settings import LazySettings
+APP_SETTINGS = LazySettings("settings.toml")
+
 import importlib
 import sys
 import os
@@ -35,22 +38,18 @@ import core
 from core.QtExtensions import VerticalContainer
 from core.Workspace import WorkspaceManager
 
-VERSION = "0.4.0 <beta>"
-COPYRIGHT = "2019 Maximilian Pensel"
-
-LOG = core.simple_logger(file_path=core.MASTER_LOG)
-
 
 class UIWindow(QMainWindow):
 
-    def __init__(self, settings):
+    def __init__(self):
         super().__init__()
 
         self.main_widget = MainWidget(self)
         self.info_window = None
 
         self.mod_loader = ModLoader()
-        self.mod_loader.load_modules(settings.modules)
+        print(APP_SETTINGS.general)
+        self.mod_loader.load_modules(APP_SETTINGS.general["modules"])
 
         self.main_widget.register_modules(self.mod_loader.modules)
 
@@ -104,7 +103,7 @@ class UIWindow(QMainWindow):
             ws_path = dialog.selectedFiles()[0]
             wsm.set_workspace(ws_path)
         else:
-            LOG.error("Something went wrong when switching workspace.")
+            core.MASTER_LOGGER.error("Something went wrong when switching workspace.")
 
         self.main_widget.reload_modules(self.mod_loader.modules)
 
@@ -138,47 +137,51 @@ class AboutWindow(QMainWindow):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        global VERSION
-        
         self.setWindowTitle("About")
         self.setWindowIcon(QIcon("resources/info.png"))
 
         # collect data from modules
         mod_data = dict()
-        for mod_dir in os.listdir(ModLoader.MOD_DIR):
-            if os.path.exists(os.path.join(ModLoader.MOD_DIR, mod_dir, "__init__.py")):
+        for mod_dir in os.listdir(APP_SETTINGS.modloader["mod_dir"]):
+            if os.path.exists(os.path.join(APP_SETTINGS.modloader["mod_dir"], mod_dir, "__init__.py")):
                 try:
-                    mod = importlib.import_module(ModLoader.MOD_DIR + "." + mod_dir,
-                                                  ModLoader.MOD_DIR + "." + mod_dir)
-                    if hasattr(mod, "VERSION"):
-                        version = getattr(mod, "VERSION")
+                    mod = importlib.import_module(APP_SETTINGS.modloader["mod_dir"] + "." + mod_dir,
+                                                  APP_SETTINGS.modloader["mod_dir"] + "." + mod_dir)
+                    if not hasattr(mod, "SETTINGS") or not hasattr(mod.SETTINGS, "general"):
+                        core.MASTER_LOGGER.warning("Your mod_dir contains modules that are "
+                                                   "probably not set up correctly. ({0})"
+                                                   .format(mod_dir))
+                        continue
+
+                    if "version" in mod.SETTINGS.general:
+                        version = mod.SETTINGS.general["version"]
                     else:
                         version = "- not supported -"
 
-                    if hasattr(mod, "COPYRIGHT"):
-                        cpright = getattr(mod, "COPYRIGHT")
+                    if "copyright" in mod.SETTINGS.general:
+                        cpright = mod.SETTINGS.general["copyright"]
                     else:
                         cpright = "- not specified -"
 
                     mod_data[mod_dir] = (version, cpright)
                 except Exception as exc:
-                    LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+                    core.MASTER_LOGGER.exception("{0}: {1}".format(type(exc).__name__, exc))
         # also collect core data
-        core_data = (VERSION, COPYRIGHT)
+        core_data = (APP_SETTINGS.general["version"], APP_SETTINGS.general["copyright"])
 
         # Info text and license notice
         copyright_label = QLabel("""\
-<h1>OpenWebScraper</h1>
-<p>This software is free of use, modification and redistribution \
-under the terms of the GNU General Public License version 3 as \
-published by the Free Software Foundation. \
-Either see the COPYING file contained in this repository or \
-<a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a> \
-for a full version of the GPLv3 license.</p><p>\
-The copyright notice and version info for each of the contained modules \
-is found in the table below. The core module is considered to comprise all \
-source files outside of the <i>modules</i> directory.</p>
-""")
+                    <h1>OpenWebScraper</h1>\
+                    <p>This software is free of use, modification and redistribution \
+                    under the terms of the GNU General Public License version 3 as \
+                    published by the Free Software Foundation. \
+                    Either see the COPYING file contained in this repository or \
+                    <a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a> \
+                    for a full version of the GPLv3 license.</p><p>\
+                    The copyright notice and version info for each of the contained modules \
+                    is found in the table below. The core module is considered to comprise all \
+                    source files outside of the <i>modules</i> directory.</p>\
+                    """)
         copyright_label.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         copyright_label.setAlignment(Qt.AlignBottom | Qt.AlignCenter)
         copyright_label.setWordWrap(True)
@@ -224,88 +227,54 @@ source files outside of the <i>modules</i> directory.</p>
 
 class ModLoader:
 
-    MOD_DIR = "modules"
-
     def __init__(self):
         self.modules = []
 
     def load_modules(self, mods: {}):
-        LOG.info("Loading modules.")
+        core.MASTER_LOGGER.info("Loading modules.")
         for modname in mods:
             try:
-                mod = importlib.import_module(ModLoader.MOD_DIR + "." + modname,
-                                              ModLoader.MOD_DIR + "." + modname)
+                mod = importlib.import_module(APP_SETTINGS.modloader["mod_dir"] + "." + modname,
+                                              APP_SETTINGS.modloader["mod_dir"] + "." + modname)
                 
-                if not hasattr(mod, "TITLE"):
-                    mod.TITLE = modname
-                
-                if hasattr(mod, "MAIN_WIDGET"):
-                    widget_path = getattr(mod, "MAIN_WIDGET")
+                if not hasattr(mod, "SETTINGS"):
+                    core.MASTER_LOGGER.error("Invalid module {0}. No settings specified.".format(modname))
+                    continue
+
+                mod_settings = mod.SETTINGS
+
+                if not hasattr(mod_settings, "general"):
+                    core.MASTER_LOGGER.error("Settings for module {0} invalid. [general] block expected, not given."
+                                             .format(modname))
+                    continue
+
+                if "main_widget" in mod_settings.general:
+                    widget_path = mod_settings.general["main_widget"]
                     setattr(mod, "MAIN_WIDGET", core.get_class(widget_path))
                     # only load the module if MAIN_WIDGET is a QWidget:
-                    if issubclass(getattr(mod, "MAIN_WIDGET"), QWidget):
+                    if issubclass(mod.MAIN_WIDGET, QWidget):
                         self.modules.append(mod)
                     else:
-                        LOG.error("{0} does not reference a class inheriting from QWidget.".format(widget_path))
+                        core.MASTER_LOGGER.error("{0} does not reference a class inheriting from QWidget."
+                                                 .format(widget_path))
                 else:
-                    raise AttributeError("__init__.py in {0} is missing MAIN_WIDGET attribute".format(modname))
+                    raise AttributeError("Settings of module {0} are missing main_widget attribute".format(modname))
+
+                if "title" not in mod_settings.general:
+                    core.MASTER_LOGGER.warning("Title of module {0} not specified in settings. Using '{0}'."
+                                               .format(modname))
+                    setattr(mod, "TITLE", modname)
+                else:
+                    setattr(mod, "TITLE", mod_settings.general["title"])
                 
             except Exception as exc:
-                LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+                core.MASTER_LOGGER.exception("{0}: {1}".format(type(exc).__name__, exc))
                 
-
-class Settings:
-    
-    def __init__(self, settings_file_path: str = "settings.ini"):
-        # init always relevant settings
-        self.modules = None
-        self.venv = ""
-        self.python = ""
-        
-        if not os.path.exists(settings_file_path):
-            LOG.warning("{0} not found, loading defaults.".format(settings_file_path))
-        else:
-            LOG.info("Loading settings from {0}.".format(settings_file_path))
-            with open(settings_file_path, "r") as settings_file:
-                l_num = 0
-                for line in settings_file.readlines():
-                    l_num += 1
-                    try:
-                        self.parse_line(line)
-                    except IndexError or TypeError or json.JSONDecodeError:
-                        LOG.error("Bad format in line {0} of settings file. Format should be 'key=value', where 'key' "
-                                  "is a string and 'value' a json-string.".format(l_num))
-
-        self.defaults()  # adds the defaults for missing but expected fields
-    
-    def parse_line(self, line: str):
-        line = line.lstrip()
-        if not Settings.is_line_comment(line):
-            key_value = line.split("=")
-            setattr(self, key_value[0], json.loads(key_value[1]))
-        
-    @staticmethod
-    def is_line_empty(line: str) -> bool:
-        return len(line) == 0
-    
-    @staticmethod
-    def is_line_comment(line) -> bool:
-        return Settings.is_line_empty(line) or line[0] == "#"
-    
-    def defaults(self):
-        if self.modules is None:  # has no modules specified
-            self.modules = ["template"]
-            LOG.info("Loading default setting: modules={0}".format(json.dumps(self.modules)))
-        if not self.venv:  # has no modules specified
-            self.venv = os.path.join(".", "venv")
-        if not self.python:  # has no modules specified
-            self.python = sys.executable
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    window = UIWindow(Settings())
+    window = UIWindow()
     #window = AboutWindow()
 
     window.show()

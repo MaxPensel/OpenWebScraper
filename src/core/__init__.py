@@ -26,6 +26,8 @@ import sys
 from logging import Formatter, FileHandler, StreamHandler, Logger, INFO
 
 from core import QtExtensions
+from crawlUI import APP_SETTINGS
+
 
 def simple_logger(modname="core", file_path=None, console_level=INFO, file_level=INFO) -> Logger:
     """
@@ -68,8 +70,7 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
     return logger
 
 
-MASTER_LOG = "master.log"
-MASTER_LOGGER = simple_logger(file_path=MASTER_LOG)
+MASTER_LOGGER = simple_logger(file_path=APP_SETTINGS.general["master_log"])
 
 
 def get_class(class_path):

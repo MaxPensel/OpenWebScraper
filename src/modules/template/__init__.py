@@ -30,7 +30,10 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-TITLE = "Template"
-MAIN_WIDGET = "modules.template.view.TemplateWidget"
-VERSION = "1.1.1"
-COPYRIGHT = "2019 Maximilian Pensel"
+import core
+from simple_settings import LazySettings
+from crawlUI import APP_SETTINGS
+
+LOG = core.simple_logger(modname="template", file_path=APP_SETTINGS.general["master_log"])
+
+SETTINGS = LazySettings(r"modules\template\settings.toml")

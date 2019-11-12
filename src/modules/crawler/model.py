@@ -22,15 +22,17 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 import json
 import core
+from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
 
 
 class CrawlSpecification:
 
     def __init__(self,
                  name: str = None,
-                 workspace: str = None,
+                 output: str = None,
+                 logs: str = None,
                  urls: [str] = None,
                  blacklist: [str] = None,
                  parser: str = None,
@@ -39,7 +41,8 @@ class CrawlSpecification:
                  finalizers: {} = None):
 
         self.name = name
-        self.workspace = workspace
+        self.output = output
+        self.logs = logs
 
         if urls is None:
             urls = list()
@@ -65,7 +68,8 @@ class CrawlSpecification:
 
     def update(self,
                name: str = None,
-               workspace: str = None,
+               output: str = None,
+               logs: str = None,
                urls: [str] = None,
                blacklist: [str] = None,
                parser: str = None,
@@ -74,8 +78,10 @@ class CrawlSpecification:
                finalizers: {} = None):
         if name:
             self.name = name
-        if workspace:
-            self.workspace = workspace
+        if output:
+            self.output = output
+        if logs:
+            self.logs = logs
         if urls:
             self.urls = urls
         if blacklist:

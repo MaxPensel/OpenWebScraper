@@ -24,17 +24,17 @@ import os
 import subprocess
 import sys
 
-from PyQt5.QtWidgets import QWidget, QComboBox, QPushButton, QVBoxLayout, QGroupBox, QLineEdit, QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QGroupBox, QLineEdit, QHBoxLayout, QMessageBox
 
 import core
-from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMessage, SimpleMessageBox, \
-    HorizontalContainer
-from crawlUI import Settings
-from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls
+from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMessage, SimpleMessageBox
+from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls, SETTINGS
 from modules.crawler.controller import CrawlerController
 from modules.crawler.model import CrawlSpecification
 
-LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
+from crawlUI import APP_SETTINGS
+
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
 
 
 class LocalCrawlView(QHBoxLayout):
@@ -54,17 +54,6 @@ class LocalCrawlView(QHBoxLayout):
         self.prev_crawl_groupbox = QGroupBox("Load Previous Crawl")
         self.prev_crawl_groupbox.setLayout(prev_crawl_layout)
 
-        # continue unfinished crawl
-        self.continue_crawl_combobox = QComboBox()
-        self.continue_crawl_button = QPushButton("Continue Crawl")
-
-        continue_crawl_layout = QVBoxLayout()
-        continue_crawl_layout.addWidget(self.continue_crawl_combobox)
-        continue_crawl_layout.addWidget(self.continue_crawl_button)
-
-        continue_crawl_groupbox = QGroupBox("Continue Unfinished Crawl")
-        continue_crawl_groupbox.setLayout(continue_crawl_layout)
-
         # new crawl
         self.crawl_name_input = QLineEdit()
         self.crawl_name_input.setPlaceholderText("Crawl name")
@@ -80,7 +69,6 @@ class LocalCrawlView(QHBoxLayout):
 
         # put together crawl starting options
         self.addWidget(self.prev_crawl_groupbox)
-        self.addWidget(continue_crawl_groupbox)
         self.addWidget(new_crawl_input_group)
 
         self.cnt = LocalCrawlController(self)
@@ -92,7 +80,6 @@ class LocalCrawlController(core.ViewController):
         super().__init__(view)
         self.master_cnt = None
         self.resettables.extend([view.prev_crawl_combobox,
-                                view.continue_crawl_combobox,
                                 view.crawl_name_input])
 
         self.init_elements()
@@ -111,9 +98,6 @@ class LocalCrawlController(core.ViewController):
         Should not further adjust layouts or labels!
         """
 
-        self._view.continue_crawl_combobox.setInsertPolicy(QComboBox.InsertAlphabetically)
-        saturate_combobox(self._view.continue_crawl_combobox, filemanager.get_running_crawls())
-
         self._view.prev_crawl_groupbox.setDisabled(True)
 
     def setup_behaviour(self):
@@ -122,7 +106,6 @@ class LocalCrawlController(core.ViewController):
         This includes all functionality of state changes for primitive widgets.
         Should not initialise default state, use init_elements() for that.
         """
-        self._view.continue_crawl_button.clicked.connect(self.continue_crawl)
         self._view.crawl_button.clicked.connect(self.start_crawl)
 
         # trigger model updates
@@ -131,27 +114,18 @@ class LocalCrawlController(core.ViewController):
         else:
             self._view.crawl_name_input.textChanged.connect(self.update_model)
 
-        self._view.continue_crawl_combobox.currentIndexChanged.connect(self.select_unfinished_crawl)
 
     def update_model(self):
         if self.master_cnt:
-            self.master_cnt.crawl_specification.update(name=self._view.crawl_name_input.displayText())
+            crawl_name = self._view.crawl_name_input.displayText()
+            self.master_cnt.crawl_specification.update(name=crawl_name,
+                                                       output=filemanager._get_crawl_raw_path(crawl_name),
+                                                       logs=filemanager.get_crawl_log_path(crawl_name)
+                                                       )
 
     def update_view(self):
         if self.master_cnt:
             self._view.crawl_name_input.setText(self.master_cnt.crawl_specification.name)
-
-    def select_unfinished_crawl(self):
-        # load crawl
-        settings_filename = self._view.continue_crawl_combobox.currentText()
-        if settings_filename:
-            self.master_cnt.crawl_specification = filemanager.load_running_crawl_settings(settings_filename)
-            self.reset_view(do_not=[self._view.continue_crawl_combobox])
-            self.master_cnt.reset_view()
-            if self.master_cnt:
-                self.master_cnt.update_view()
-            else:
-                self.update_view()
 
     def continue_crawl(self):
         spec = self.master_cnt.crawl_specification  # type: CrawlSpecification
@@ -196,7 +170,8 @@ class LocalCrawlController(core.ViewController):
             msg.exec()
             return
 
-        if self.master_cnt.crawl_specification.name in filemanager.get_running_crawls():
+        # TODO Determine if a crawl has incomplete datafiles
+        if False:
             msg = SimpleMessageBox("Warning",
                                    "There is still an unfinished crawl by the name '{0}'."
                                    .format(self.master_cnt.crawl_specification.name),
@@ -258,16 +233,11 @@ class LocalCrawlController(core.ViewController):
 
         if continue_crawl:
             # check if running specification exists, if so, return its path
-            if spec.name not in filemanager.get_running_crawls():
-                LOG.error("Cannot continue crawl '{0}', no running specification found."
-                          .format(spec.name))
-                return None
-            else:
-                return filemanager.get_running_specification_path(spec.name)
+            return filemanager.get_crawl_specification(spec.name)
         else:
             # setup finalizers; for now this setup is fixed, may be UI configurable in the future
-            spec.update(pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},
-                        finalizers={"modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {}})
+            spec.update(pipelines={"pipelines.Paragraph2CsvPipeline": 300},
+                        finalizers={})
             if spec.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"
@@ -279,19 +249,19 @@ class LocalCrawlController(core.ViewController):
 
 
 def start_scrapy(settings_path):
-    python_exe = os.path.abspath(Settings().python)
-    scrapy_script = os.path.join("modules","crawler", "scrapy_wrapper.py")
-    LOG.info("Running scrapy_wrapper.py with {0}".format(python_exe))
+    scrapy_script = SETTINGS.general["scrapy_wrapper_exec"]
+    command = scrapy_script + " \"" + settings_path + "\""
+    LOG.info("Running {0}".format(command))
     try:
         if os.name == "nt":  # include the creation flag DETACHED_PROCESS for calls in windows
-            subprocess.Popen(python_exe + " " + scrapy_script + " \"" + settings_path + "\"",
+            subprocess.Popen(command,
                              stdout=sys.stdout,
                              shell=True,
                              start_new_session=True,
                              cwd=".",
                              creationflags=WindowsCreationFlags.DETACHED_PROCESS)
         else:
-            subprocess.Popen(python_exe + " " + scrapy_script + " \"" + settings_path + "\"",
+            subprocess.Popen(command,
                              stdout=sys.stdout,
                              shell=True,
                              start_new_session=True,

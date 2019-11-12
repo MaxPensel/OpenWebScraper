@@ -21,21 +21,13 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>."""
 
 import validators
-
 import core
+from simple_settings import LazySettings
+from crawlUI import APP_SETTINGS
 
-TITLE = "Crawler"
-MAIN_WIDGET = "modules.crawler.view.CrawlerWidget"
-VERSION = "0.4.0 <beta>"
-COPYRIGHT = "2019 Maximilian Pensel"
-LOG = core.simple_logger(modname="crawler", file_path=core.MASTER_LOG)
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
 
-INITIALIZER_WIDGETS = {"Local Workspace Initializer": "modules.crawler.ui.initializers.local.LocalCrawlView",
-                       "Remote HTTP Initializer": "modules.crawler.ui.initializers.httpremote.HttpRemoteCrawlView"}
-INITIALIZER_DEFAULT = "Local Workspace Initializer"
-
-PARSER_WIDGETS = {"Paragraph Parser": "modules.crawler.ui.parsers.paragraph.ParagraphParserSettingsView"}
-PARSER_DEFAULT = "Paragraph Parser"
+SETTINGS = LazySettings("modules\\crawler\\settings.toml")
 
 
 def detect_valid_urls(urls_in):

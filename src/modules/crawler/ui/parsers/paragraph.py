@@ -24,10 +24,13 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QCheckBox, QGroupBox, QVBoxLayout, QPlainTextEdit
 
 from core import ViewController
-from core.QtExtensions import HorizontalContainer
 from modules.crawler.controller import CrawlerController
 from modules.crawler.model import CrawlSpecification
-from modules.crawler.scrapy.parsers import ParagraphParser
+from modules.crawler import SETTINGS
+
+KEY_KEEP_LANGDETECT_ERRORS = "keep_langdetect_errors"
+KEY_LANGUAGES = "allowed_languages"
+KEY_XPATHS = "xpaths"
 
 
 class ParagraphParserSettingsView(QHBoxLayout):
@@ -89,13 +92,13 @@ class ParagraphParserSettingsController(ViewController):
         # setup allowed languages
         for lang in sorted(self.allowed_languages, key=self.allowed_languages.get):
             self._view.lang_checks[lang] = QCheckBox(self.allowed_languages[lang])
-            if lang in ParagraphParser.DEFAULT_ALLOWED_LANGUAGES:
+            if lang in SETTINGS.ui_parser_defaults["allowed_languages"]:
                 self._view.lang_checks[lang].setChecked(True)
             self._view.lang_area.layout().addWidget(self._view.lang_checks[lang])
         self._view.lang_area.layout().addStretch()
 
         # setup default xpath expressions
-        self._view.xpath_area.setPlainText("\n".join(ParagraphParser.DEFAULT_XPATHS))
+        self._view.xpath_area.setPlainText("\n".join(SETTINGS.ui_parser_defaults["xpaths"]))
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements
@@ -113,12 +116,12 @@ class ParagraphParserSettingsController(ViewController):
     def update_model(self):
         spec = self.master_cnt.crawl_specification  # type: CrawlSpecification
         data = {
-            ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS: self._view.keep_langdetect_errors.isChecked(),
-            ParagraphParser.KEY_LANGUAGES:
+            KEY_KEEP_LANGDETECT_ERRORS: self._view.keep_langdetect_errors.isChecked(),
+            KEY_LANGUAGES:
                 [lang for lang in self.allowed_languages if self._view.lang_checks[lang].isChecked()],
-            ParagraphParser.KEY_XPATHS: self._view.xpath_area.toPlainText().splitlines()
+            KEY_XPATHS: self._view.xpath_area.toPlainText().splitlines()
         }
-        spec.update(parser="modules.crawler.scrapy.parsers.ParagraphParser",
+        spec.update(parser="parsers.ParagraphParser",
                     parser_data=data)
         pass
 
@@ -126,20 +129,18 @@ class ParagraphParserSettingsController(ViewController):
         spec = self.master_cnt.crawl_specification  # type: CrawlSpecification
 
         self._view.keep_langdetect_errors.setChecked(
-            ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS in spec.parser_data and
-            spec.parser_data[ParagraphParser.KEY_KEEP_LANGDETECT_ERRORS])
+            KEY_KEEP_LANGDETECT_ERRORS in spec.parser_data and
+            spec.parser_data[KEY_KEEP_LANGDETECT_ERRORS])
 
         for lang in self.allowed_languages:
             self._view.lang_checks[lang].setChecked(
-                ParagraphParser.KEY_LANGUAGES in spec.parser_data and
-                lang in spec.parser_data[ParagraphParser.KEY_LANGUAGES]
+                KEY_LANGUAGES in spec.parser_data and
+                lang in spec.parser_data[KEY_LANGUAGES]
             )
 
-        if ParagraphParser.KEY_XPATHS in spec.parser_data:
+        if KEY_XPATHS in spec.parser_data:
             self._view.xpath_area.setPlainText(
-                "\n".join(spec.parser_data[ParagraphParser.KEY_XPATHS])
+                "\n".join(spec.parser_data[KEY_XPATHS])
             )
         else:
             self._view.xpath_area.setPlainText()
-
-

@@ -26,6 +26,7 @@ import os
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QGroupBox
 import core
 from core.QtExtensions import HorizontalContainer, SimpleErrorInfo
+from modules.crawler import filemanager
 from modules.crawler.controller import CrawlerController
 
 
@@ -109,7 +110,11 @@ class HttpRemoteQueueController(core.ViewController):
 
     def update_model(self):
         if self.master_cnt:
-            self.master_cnt.crawl_specification.update(name=self._view.crawl_name_input.displayText())
+            crawl_name = self._view.crawl_name_input.displayText()
+            self.master_cnt.crawl_specification.update(name=crawl_name,
+                                                       output=filemanager._get_crawl_raw_path(crawl_name),
+                                                       logs=filemanager.get_crawl_log_path(crawl_name)
+                                                       )
 
     def update_view(self):
         self._view.crawl_name_input.setText(self.master_cnt.crawl_specification.name)
@@ -122,12 +127,13 @@ class HttpRemoteQueueController(core.ViewController):
         """
         # do some specific crawl specification setup
         self.master_cnt.crawl_specification.update(
-            # make workspace relative, because scrapy_wrapper is not being executed on THIS system
-            workspace=os.path.join("..", "..", "default_workspace"),
-            pipelines={"modules.crawler.scrapy.pipelines.Paragraph2WorkspacePipeline": 300},  # keep this too (?!)
+            # these directories are rather arbitrary, because scrapy_wrapper is not being executed on THIS system
+            # introduce a finalizer to supply resulting data from these output directories back to the user
+            output="data",
+            logs="logs",
+            pipelines={"pipelines.Paragraph2CsvPipeline": 300},
             # extend finalizers by one that retrieves the crawl results and sends them away
-            finalizers={"modules.crawler.scrapy.pipelines.LocalCrawlFinalizer": {},
-                        "modules.crawler.scrapy.pipelines.RemoteCrawlFinalizer": {}}  # <---- implement this
+            finalizers={}
 
         )
 

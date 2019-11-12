@@ -22,16 +22,14 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
 import core
-
-LOG_DIR = "logs"
-LOG = core.simple_logger(file_path=core.MASTER_LOG)
+from crawlUI import APP_SETTINGS
 
 
 class WorkspaceManager:
     class __WorkspaceManager:
 
         def __init__(self, path=""):
-            self._default_workspace = os.path.join(os.getcwd(), "default_workspace")
+            self._default_workspace = os.path.join(os.getcwd(), APP_SETTINGS.workspace["default"])
             self._workspace_path = path
 
             self.get_workspace()  # calling this on init ensures that the workspace always exists
@@ -54,14 +52,14 @@ class WorkspaceManager:
             """ Set the current workspace to path, creating it if necessary in the process. """
             WorkspaceManager._create_workspace_path(path)
             self._workspace_path = path
-            LOG.info("Switched workspace to {0}.".format(self._workspace_path))
+            core.MASTER_LOGGER.info("Switched workspace to {0}.".format(self._workspace_path))
 
         def get_log_path(self):
             self._create_log_path()
-            return os.path.join(self.get_workspace(), LOG_DIR)
+            return os.path.join(self.get_workspace(), APP_SETTINGS.workspace["log_path"])
 
         def _create_log_path(self):
-            os.makedirs(os.path.join(self.get_workspace(), LOG_DIR), exist_ok=True)
+            os.makedirs(os.path.join(self.get_workspace(), APP_SETTINGS.workspace["log_path"]), exist_ok=True)
 
     # End of inner __WorkspaceManager
 
@@ -72,7 +70,7 @@ class WorkspaceManager:
             WorkspaceManager._instance = WorkspaceManager.__WorkspaceManager(path)
         else:
             if path:
-                LOG.warning("Attention, calling WorkspaceManager.__init__ with non-empty path even though "
+                core.MASTER_LOGGER.warning("Attention, calling WorkspaceManager.__init__ with non-empty path even though "
                             "WorkspaceManager singleton already exists. The current workspace is {0}."
                             .format(self.get_workspace()))
 
