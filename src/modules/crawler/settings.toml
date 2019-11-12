@@ -1,0 +1,35 @@
+[general]
+title       = "Crawler"
+main_widget = "modules.crawler.view.CrawlerWidget"
+version     = "0.5.0 <beta>"
+copyright   = "2019 Maximilian Pensel"
+scrapy_wrapper_exec = '..\..\OWS-scrapy-wrapper\dist\scrapy_wrapper\scrapy_wrapper.exe'
+
+[ui]
+
+  [ui_parser]
+  default = "Paragraph Parser"
+
+    [ui_parser_widgets]
+    "Paragraph Parser" = "modules.crawler.ui.parsers.paragraph.ParagraphParserSettingsView"
+
+    [ui_parser_defaults]
+    allowed_languages = ["de", "en"]
+    xpaths = ["//p", "//td"]
+
+  [ui_initializer]
+  default = "Local Workspace Initializer"
+
+    [ui_initializer_widgets]
+    "Local Workspace Initializer" = "modules.crawler.ui.initializers.local.LocalCrawlView"
+    "Remote HTTP Initializer"     = "modules.crawler.ui.initializers.httpremote.HttpRemoteCrawlView"
+
+[filemanager]
+# Directories within workspace
+data_dir = "data"
+raw_data_dir = "raw"
+# File extensions
+url_file_extension = "urls"
+blacklist_file_extension = "blacklist"
+# File state flags
+incomplete_flag = "-INCOMPLETE"
