@@ -56,7 +56,11 @@ In case you need to compile from sources, follow the directions in install_steps
 # Documentation
 
 This is a preliminary documentation about the code structure and some module interactions.
-First of all, the main user interface (UI) is a modular platform. The core loads the modules that are present in the ```modules``` directory and activated in the ```settings.ini```. Each module contains a main PyQt5 Widget that represents its view component. Each main widget appears as a new tab in the core UI.
+First of all, the main user interface (UI) is a modular platform. 
+The core loads the modules that are present in the ```modules``` 
+directory and activated in the ```settings.toml```. 
+Each module contains a main PyQt5 Widget that represents its view 
+component. Each main widget appears as a new tab in the core UI.
 There is a well documented template module that contains further information on how to implement new modules.
 
 ## Module: Crawler
