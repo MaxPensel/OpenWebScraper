@@ -23,6 +23,7 @@ scrapy_wrapper_exec = '..\..\OWS-scrapy-wrapper\dist\scrapy_wrapper\scrapy_wrapp
     [ui_initializer_widgets]
     "Local Workspace Initializer" = "modules.crawler.ui.initializers.local.LocalCrawlView"
     "Remote HTTP Initializer"     = "modules.crawler.ui.initializers.httpremote.HttpRemoteCrawlView"
+    "Specification Generator" = "modules.crawler.ui.initializers.nocrawl.NoCrawlView"
 
 [filemanager]
 # Directories within workspace

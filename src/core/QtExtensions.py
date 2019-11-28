@@ -73,7 +73,9 @@ class FileOpenPushButton(QPushButton):
                  mode: QFileDialog.FileMode = QFileDialog.AnyFile):
         super().__init__(title)
         self._hook_field = hook_field
-        if not callable(hook) and hook_field is not None:
+        if callable(hook):
+            self._hook = hook
+        elif hook_field is not None:
             self._hook = self.fill_field
 
         self.clicked.connect(self.on_click)
