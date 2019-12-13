@@ -1,5 +1,5 @@
 [general]
-modules    = ["crawler"]
+modules    = ["crawler", "template"]
 version    = "0.5.0 <beta>"
 copyright  = "2019 Maximilian Pensel"
 master_log = "master.log"

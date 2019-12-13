@@ -92,13 +92,13 @@ class ParagraphParserSettingsController(ViewController):
         # setup allowed languages
         for lang in sorted(self.allowed_languages, key=self.allowed_languages.get):
             self._view.lang_checks[lang] = QCheckBox(self.allowed_languages[lang])
-            if lang in SETTINGS.ui_parser_defaults["allowed_languages"]:
+            if lang in SETTINGS["ui"]["parser"]["defaults"]["allowed_languages"]:
                 self._view.lang_checks[lang].setChecked(True)
             self._view.lang_area.layout().addWidget(self._view.lang_checks[lang])
         self._view.lang_area.layout().addStretch()
 
         # setup default xpath expressions
-        self._view.xpath_area.setPlainText("\n".join(SETTINGS.ui_parser_defaults["xpaths"]))
+        self._view.xpath_area.setPlainText("\n".join(SETTINGS["ui"]["parser"]["defaults"]["xpaths"]))
 
     def setup_behaviour(self):
         """ Setup the behaviour of elements

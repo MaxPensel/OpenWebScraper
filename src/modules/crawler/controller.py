@@ -28,7 +28,6 @@ from PyQt5 import sip
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QWidget, QLayout
-from simple_settings import LazySettings
 
 import core
 from core.QtExtensions import saturate_combobox, build_save_file_connector, delete_layout
@@ -36,12 +35,10 @@ from modules.crawler import filemanager, SETTINGS
 from modules.crawler.model import CrawlSpecification
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
 
 class CrawlerController(core.ViewController):
-
-    MOD_PATH = os.path.join(LazySettings("settings.toml").modloader["mod_dir"], "crawler")
 
     def __init__(self, view):
         super().__init__(view)
@@ -85,20 +82,20 @@ class CrawlerController(core.ViewController):
             (lambda l: validators.url(l), Qt.darkGreen, Qt.red)
         )
 
-        saturate_combobox(self._view.parser_select, SETTINGS.ui_parser_widgets.keys(), include_empty=False)
+        saturate_combobox(self._view.parser_select, SETTINGS["ui"]["parser"]["widgets"].keys(), include_empty=False)
         self._view.parser_select.setCurrentIndex(
-            self._view.parser_select.findText(SETTINGS.ui_parser["default"]))
+            self._view.parser_select.findText(SETTINGS["ui"]["parser"]["default"]))
 
         saturate_combobox(self._view.initializer_select,
-                          SETTINGS.ui_initializer_widgets.keys(),
+                          SETTINGS["ui"]["initializer"]["widgets"].keys(),
                           include_empty=False)
         self._view.initializer_select.setCurrentIndex(
-            self._view.initializer_select.findText(SETTINGS.ui_initializer["default"]))
+            self._view.initializer_select.findText(SETTINGS["ui"]["initializer"]["default"]))
 
-        self.register_sub_view(SETTINGS.ui_parser_widgets[SETTINGS.ui_parser["default"]],
+        self.register_sub_view(SETTINGS["ui"]["parser"]["widgets"][SETTINGS["ui"]["parser"]["default"]],
                                self._view.parser_settings_container.layout())
         self.register_sub_view(
-            SETTINGS.ui_initializer_widgets[SETTINGS.ui_initializer["default"]],
+            SETTINGS["ui"]["initializer"]["widgets"][SETTINGS["ui"]["initializer"]["default"]],
             self._view.initializer_container.layout())
 
     def setup_behaviour(self):
@@ -136,13 +133,13 @@ class CrawlerController(core.ViewController):
 
         # sub view switching
         self._view.parser_select.currentIndexChanged.connect(
-            lambda: self.switch_sub_view(SETTINGS.ui_parser_widgets,
+            lambda: self.switch_sub_view(SETTINGS["ui"]["parser"]["widgets"],
                                          self._view.parser_settings_container.layout(),
                                          self._view.parser_select)
         )
 
         self._view.initializer_select.currentIndexChanged.connect(
-            lambda: self.switch_sub_view(SETTINGS.ui_initializer_widgets,
+            lambda: self.switch_sub_view(SETTINGS["ui"]["initializer"]["widgets"],
                                          self._view.initializer_container.layout(),
                                          self._view.initializer_select)
         )
@@ -187,7 +184,7 @@ class CrawlerController(core.ViewController):
 
     def switch_parser_view(self):
         key = self._view.parser_select.currentText()
-        self.register_parser_view(SETTINGS.ui_parser_widgets[key])
+        self.register_parser_view(SETTINGS["ui"]["parser"]["widgets"][key])
 
     def register_parser_view(self, parser_view_path):
         parser_view = core.get_class(parser_view_path)
@@ -208,7 +205,7 @@ class CrawlerController(core.ViewController):
 
     def switch_initializer_view(self):
         key = self._view.initializer_select.currentText()
-        self.register_initializer_view(SETTINGS.ui_initializer_widgets[key])
+        self.register_initializer_view(SETTINGS["ui"]["initializer"]["widgets"][key])
 
     def register_initializer_view(self, initializer_view_path):
         init_view = core.get_class(initializer_view_path)

@@ -34,7 +34,7 @@ from modules.crawler.model import CrawlSpecification
 
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
 
 class LocalCrawlView(QHBoxLayout):
@@ -249,7 +249,7 @@ class LocalCrawlController(core.ViewController):
 
 
 def start_scrapy(settings_path):
-    scrapy_script = SETTINGS.general["scrapy_wrapper_exec"]
+    scrapy_script = SETTINGS["general"]["scrapy_wrapper_exec"]
     command = scrapy_script + " \"" + settings_path + "\""
     LOG.info("Running {0}".format(command))
     try:

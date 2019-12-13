@@ -21,13 +21,13 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from simple_settings import LazySettings
-APP_SETTINGS = LazySettings("settings.toml")
+import toml
+APP_SETTINGS = toml.load("settings.toml")
 
 import importlib
 import sys
 import os
-import json
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget, QApplication, QMainWindow, QSizePolicy, \
     QTableWidget, QTableWidgetItem, QAction, QFileDialog, QWidget, QLabel, QFrame
@@ -39,6 +39,8 @@ from core.QtExtensions import VerticalContainer
 from core.Workspace import WorkspaceManager
 
 
+
+
 class UIWindow(QMainWindow):
 
     def __init__(self):
@@ -48,8 +50,8 @@ class UIWindow(QMainWindow):
         self.info_window = None
 
         self.mod_loader = ModLoader()
-        print(APP_SETTINGS.general)
-        self.mod_loader.load_modules(APP_SETTINGS.general["modules"])
+
+        self.mod_loader.load_modules(APP_SETTINGS["general"]["modules"])
 
         self.main_widget.register_modules(self.mod_loader.modules)
 
@@ -142,24 +144,24 @@ class AboutWindow(QMainWindow):
 
         # collect data from modules
         mod_data = dict()
-        for mod_dir in os.listdir(APP_SETTINGS.modloader["mod_dir"]):
-            if os.path.exists(os.path.join(APP_SETTINGS.modloader["mod_dir"], mod_dir, "__init__.py")):
+        for mod_dir in os.listdir(APP_SETTINGS["modloader"]["mod_dir"]):
+            if os.path.exists(os.path.join(APP_SETTINGS["modloader"]["mod_dir"], mod_dir, "__init__.py")):
                 try:
-                    mod = importlib.import_module(APP_SETTINGS.modloader["mod_dir"] + "." + mod_dir,
-                                                  APP_SETTINGS.modloader["mod_dir"] + "." + mod_dir)
-                    if not hasattr(mod, "SETTINGS") or not hasattr(mod.SETTINGS, "general"):
+                    mod = importlib.import_module(APP_SETTINGS["modloader"]["mod_dir"] + "." + mod_dir,
+                                                  APP_SETTINGS["modloader"]["mod_dir"] + "." + mod_dir)
+                    if not hasattr(mod, "SETTINGS") or "general" not in mod.SETTINGS:
                         core.MASTER_LOGGER.warning("Your mod_dir contains modules that are "
                                                    "probably not set up correctly. ({0})"
                                                    .format(mod_dir))
                         continue
 
                     if "version" in mod.SETTINGS.general:
-                        version = mod.SETTINGS.general["version"]
+                        version = mod.SETTINGS["general"]["version"]
                     else:
                         version = "- not supported -"
 
                     if "copyright" in mod.SETTINGS.general:
-                        cpright = mod.SETTINGS.general["copyright"]
+                        cpright = mod.SETTINGS["general"]["copyright"]
                     else:
                         cpright = "- not specified -"
 
@@ -167,7 +169,7 @@ class AboutWindow(QMainWindow):
                 except Exception as exc:
                     core.MASTER_LOGGER.exception("{0}: {1}".format(type(exc).__name__, exc))
         # also collect core data
-        core_data = (APP_SETTINGS.general["version"], APP_SETTINGS.general["copyright"])
+        core_data = (APP_SETTINGS["general"]["version"], APP_SETTINGS["general"]["copyright"])
 
         # Info text and license notice
         copyright_label = QLabel("""\
@@ -234,8 +236,8 @@ class ModLoader:
         core.MASTER_LOGGER.info("Loading modules.")
         for modname in mods:
             try:
-                mod = importlib.import_module(APP_SETTINGS.modloader["mod_dir"] + "." + modname,
-                                              APP_SETTINGS.modloader["mod_dir"] + "." + modname)
+                mod = importlib.import_module(APP_SETTINGS["modloader"]["mod_dir"] + "." + modname,
+                                              APP_SETTINGS["modloader"]["mod_dir"] + "." + modname)
                 
                 if not hasattr(mod, "SETTINGS"):
                     core.MASTER_LOGGER.error("Invalid module {0}. No settings specified.".format(modname))
@@ -243,13 +245,13 @@ class ModLoader:
 
                 mod_settings = mod.SETTINGS
 
-                if not hasattr(mod_settings, "general"):
+                if "general" not in mod_settings:
                     core.MASTER_LOGGER.error("Settings for module {0} invalid. [general] block expected, not given."
                                              .format(modname))
                     continue
 
-                if "main_widget" in mod_settings.general:
-                    widget_path = mod_settings.general["main_widget"]
+                if "main_widget" in mod_settings["general"]:
+                    widget_path = mod_settings["general"]["main_widget"]
                     setattr(mod, "MAIN_WIDGET", core.get_class(widget_path))
                     # only load the module if MAIN_WIDGET is a QWidget:
                     if issubclass(mod.MAIN_WIDGET, QWidget):
@@ -260,12 +262,12 @@ class ModLoader:
                 else:
                     raise AttributeError("Settings of module {0} are missing main_widget attribute".format(modname))
 
-                if "title" not in mod_settings.general:
+                if "title" not in mod_settings["general"]:
                     core.MASTER_LOGGER.warning("Title of module {0} not specified in settings. Using '{0}'."
                                                .format(modname))
                     setattr(mod, "TITLE", modname)
                 else:
-                    setattr(mod, "TITLE", mod_settings.general["title"])
+                    setattr(mod, "TITLE", mod_settings["general"]["title"])
                 
             except Exception as exc:
                 core.MASTER_LOGGER.exception("{0}: {1}".format(type(exc).__name__, exc))

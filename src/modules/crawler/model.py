@@ -24,7 +24,7 @@ import json
 import core
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
 
 class CrawlSpecification:

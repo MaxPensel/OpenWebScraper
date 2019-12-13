@@ -70,7 +70,7 @@ def simple_logger(modname="core", file_path=None, console_level=INFO, file_level
     return logger
 
 
-MASTER_LOGGER = simple_logger(file_path=APP_SETTINGS.general["master_log"])
+MASTER_LOGGER = simple_logger(file_path=APP_SETTINGS["general"]["master_log"])
 
 
 def get_class(class_path):

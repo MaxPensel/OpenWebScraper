@@ -45,7 +45,7 @@ from modules.crawler.model import CrawlSpecification
 from modules.crawler import SETTINGS
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
 
 ###
@@ -57,7 +57,7 @@ LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["mast
 
 def _get_crawl_raw_path(crawlname):
     """ Returns '%workspace-dir%/data/%crawlname%/raw/' """
-    return os.path.join(_get_crawl_path(crawlname), SETTINGS.filemanager["raw_data_dir"])
+    return os.path.join(_get_crawl_path(crawlname), SETTINGS["filemanager"]["raw_data_dir"])
 
 
 def _get_crawl_path(crawlname):
@@ -67,7 +67,7 @@ def _get_crawl_path(crawlname):
 
 def _get_data_path():
     """ Returns '%workspace-dir%/data/' """
-    data_path = os.path.join(WorkspaceManager().get_workspace(), SETTINGS.filemanager["data_dir"])
+    data_path = os.path.join(WorkspaceManager().get_workspace(), SETTINGS["filemanager"]["data_dir"])
     if not os.path.exists(data_path):
         os.makedirs(data_path, exist_ok=True)
     return data_path
@@ -92,13 +92,13 @@ def get_crawl_log_path(crawl_name):
 def get_url_filenames():
     wsm = WorkspaceManager()
 
-    return __get_filenames_of_type("." + SETTINGS.filemanager["url_file_extension"], wsm.get_workspace())
+    return __get_filenames_of_type("." + SETTINGS["filemanager"]["url_file_extension"], wsm.get_workspace())
 
 
 def get_blacklist_filenames():
     wsm = WorkspaceManager()
 
-    return __get_filenames_of_type("." + SETTINGS.filemanager["blacklist_file_extension"], wsm.get_workspace())
+    return __get_filenames_of_type("." + SETTINGS["filemanager"]["blacklist_file_extension"], wsm.get_workspace())
 
 
 def get_crawlnames():
@@ -120,7 +120,7 @@ def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
     incomplete = list()
     for url in urls:
         fname = url2filename(url)
-        if (fname + SETTINGS.filemanager["incomplete_flag"]) in datafiles:
+        if (fname + SETTINGS["filemanager"]["incomplete_flag"]) in datafiles:
             incomplete.append(url)
         elif fname not in datafiles:
             incomplete.append(url)
@@ -131,14 +131,14 @@ def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
 
 def get_url_content(filename):
     global url_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["url_file_extension"])
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["url_file_extension"])
 
     return __get_file_content(filepath)
 
 
 def get_blacklist_content(filename):
     global blacklist_file_extension
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["blacklist_file_extension"])
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["blacklist_file_extension"])
 
     return __get_file_content(filepath)
 
@@ -161,7 +161,7 @@ def save_url_content(content, filename):
         LOG.error("No filename given for saving url content.")
         return
 
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["url_file_extension"])
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["url_file_extension"])
 
     __save_file_content(content, filepath)
 
@@ -171,7 +171,7 @@ def save_blacklist_content(content, filename):
         LOG.error("No filename given for saving url content.")
         return
 
-    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS.filemanager["blacklist_file_extension"])
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["blacklist_file_extension"])
 
     __save_file_content(content, filepath)
 
@@ -218,7 +218,7 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
     :param incomplete: If True then filename is extended with incomplete_flag
     :return:
     """
-    inc = SETTINGS.filemanager["incomplete_flag"] if incomplete else ""
+    inc = SETTINGS["filemanager"]["incomplete_flag"] if incomplete else ""
     fullpath = os.path.join(_get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if overwrite or not os.path.exists(fullpath):
@@ -227,7 +227,7 @@ def create_csv(crawl: str, domain: str, overwrite=False, incomplete=True):
 
 
 def add_to_csv(crawl: str, domain: str, data: dict, incomplete=True):
-    inc = SETTINGS.filemanager["incomplete_flag"] if incomplete else ""
+    inc = SETTINGS["filemanager"]["incomplete_flag"] if incomplete else ""
     fullpath = os.path.join(_get_crawl_raw_path(crawl), domain + inc + ".csv")
 
     if os.path.exists(fullpath):
@@ -279,7 +279,7 @@ def complete_csv(crawl: str, domain: str):
     :return:
     """
     crawl_path = _get_crawl_raw_path(crawl)
-    fullpath_inc = os.path.join(crawl_path, domain + SETTINGS.filemanager["incomplete_flag"] + ".csv")
+    fullpath_inc = os.path.join(crawl_path, domain + SETTINGS["filemanager"]["incomplete_flag"] + ".csv")
     fullpath_com = os.path.join(crawl_path, domain + ".csv")
 
     shutil.move(fullpath_inc, fullpath_com)
