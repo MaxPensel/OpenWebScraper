@@ -82,25 +82,25 @@ class CrawlSpecification:
                parser_data: {} = None,
                pipelines: {} = None,
                finalizers: {} = None):
-        if name:
+        if name is not None:
             self.name = name
-        if output:
+        if output is not None:
             self.output = output
-        if logs:
+        if logs is not None:
             self.logs = logs
-        if urls:
+        if urls is not None:
             self.urls = urls
-        if blacklist:
+        if blacklist is not None:
             self.blacklist = blacklist
-        if whitelist:
+        if whitelist is not None:
             self.whitelist = whitelist
-        if parser:
+        if parser is not None:
             self.parser = parser
-        if parser_data:
+        if parser_data is not None:
             self.parser_data = parser_data
-        if pipelines:
+        if pipelines is not None:
             self.pipelines = pipelines
-        if finalizers:
+        if finalizers is not None:
             self.finalizers = finalizers
 
     def serialize(self, pretty=True):

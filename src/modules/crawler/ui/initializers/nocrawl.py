@@ -70,6 +70,7 @@ class NoCrawlController(core.ViewController):
         self._view.save_button.clicked.connect(self.save_specification)
 
     def save_specification(self):
+        self.master_cnt.update_model()
         if self.dialog.exec_():
             file_name = self.dialog.selectedFiles()[0]
             crawlname = os.path.splitext(os.path.basename(file_name))[0]
