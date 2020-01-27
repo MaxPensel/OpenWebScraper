@@ -32,6 +32,9 @@ KEY_KEEP_LANGDETECT_ERRORS = "keep_langdetect_errors"
 KEY_LANGUAGES = "allowed_languages"
 KEY_XPATHS = "xpaths"
 
+V_ANY = "any"
+V_DISABLED = "disabled"
+
 
 class ParagraphParserSettingsView(QHBoxLayout):
 
@@ -40,9 +43,11 @@ class ParagraphParserSettingsView(QHBoxLayout):
 
         # langdetect behavior
         self.keep_langdetect_errors = QCheckBox("Keep paragraphs on langdetect errors")
+        self.disable_langdetect = QCheckBox("Disable language detection")
         langdetect_behavior_group = QGroupBox("Langdetect Behavior")
         langdetect_behavior_group.setLayout(QVBoxLayout())
         langdetect_behavior_group.layout().addWidget(self.keep_langdetect_errors)
+        langdetect_behavior_group.layout().addWidget(self.disable_langdetect)
         langdetect_behavior_group.layout().addStretch()
 
         # language selection
@@ -73,7 +78,8 @@ class ParagraphParserSettingsController(ViewController):
 
         # this is for the ui, default is given from modules.crawler.scrapy.parsers.ParagraphParser
         self.allowed_languages = {"de": "German",
-                                  "en": "English"}
+                                  "en": "English",
+                                  V_ANY: "Any"}
 
         self.init_elements()
 
@@ -109,16 +115,22 @@ class ParagraphParserSettingsController(ViewController):
 
         # trigger model updates
         self._view.keep_langdetect_errors.clicked.connect(self.update_model)
+        self._view.disable_langdetect.clicked.connect(self.update_model)
         self._view.xpath_area.textChanged.connect(self.update_model)
         for lang in self.allowed_languages:
             self._view.lang_checks[lang].clicked.connect(self.update_model)
 
     def update_model(self):
         spec = self.master_cnt.crawl_specification  # type: CrawlSpecification
+
+        if self._view.disable_langdetect.isChecked():
+            languages = [V_DISABLED]
+        else:
+            languages = [lang for lang in self.allowed_languages if self._view.lang_checks[lang].isChecked()]
+
         data = {
             KEY_KEEP_LANGDETECT_ERRORS: self._view.keep_langdetect_errors.isChecked(),
-            KEY_LANGUAGES:
-                [lang for lang in self.allowed_languages if self._view.lang_checks[lang].isChecked()],
+            KEY_LANGUAGES: languages,
             KEY_XPATHS: self._view.xpath_area.toPlainText().splitlines()
         }
         spec.update(parser="parsers.ParagraphParser",
