@@ -20,11 +20,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
+import toml
 from PyQt5 import QtCore
 from PyQt5.Qt import Qt
 from PyQt5.QtGui import QSyntaxHighlighter
 from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QFileDialog, QBoxLayout, QMessageBox, QComboBox, \
-    QPlainTextEdit, QFrame
+    QPlainTextEdit, QFrame, QMainWindow, QTextEdit
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout
 
 import core
@@ -101,7 +102,8 @@ class SimpleMessageBox(QMessageBox):
 
     def __init__(self, title, text, details="", icon=None):
         super().__init__()
-        self.setIcon(icon)
+        if icon:
+            self.setIcon(icon)
         self.setText(text)
         self.setInformativeText(details)
         self.setWindowTitle(title)
@@ -239,3 +241,52 @@ def delete_layout(layout):
             else:
                 delete_layout(widget)
                 layout.removeItem(widget)
+
+
+class TomlConfigWindow(QMainWindow):
+
+    open_window = None
+
+    @staticmethod
+    def create_window(toml_file, parent=None):
+        if not TomlConfigWindow.open_window:
+            TomlConfigWindow.open_window = TomlConfigWindow(toml_file, parent)
+            TomlConfigWindow.open_window.show()
+
+    def __init__(self, toml_file, parent=None):
+        super().__init__(parent)
+
+        self.toml_file = toml_file
+
+        self.setWindowTitle("Settings - " + toml_file)
+
+        self.toml_area = QTextEdit()
+        with open(toml_file, "r") as tf:
+            self.toml_area.setText(tf.read())
+
+        save_button = QPushButton("Save Settings")
+        save_button.clicked.connect(self.save_content)
+
+        central = VerticalContainer()
+        central.addWidget(self.toml_area)
+        central.addWidget(save_button)
+
+        self.setCentralWidget(central)
+
+        # Automatically determine a good size with the given layout
+        self.setFixedSize(500, 600)
+
+    def save_content(self):
+        content = self.toml_area.toPlainText()
+        try:
+            toml.loads(content)
+
+            with open(self.toml_file, "w") as tf:
+                tf.write(content)
+            SimpleMessageBox("File Saved", "Successfully saved configuration.").exec()
+        except toml.TomlDecodeError as exc:
+            core.MASTER_LOGGER.exception(f"{type(exc).__name__}: {exc}")
+            SimpleErrorInfo("Error", "Content not in correct toml formal.", details=str(exc)).exec()
+
+    def closeEvent(self, event):
+        TomlConfigWindow.open_window = None

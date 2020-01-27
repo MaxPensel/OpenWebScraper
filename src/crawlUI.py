@@ -62,6 +62,7 @@ class UIWindow(QMainWindow):
     def init_menu(self):
         main_menu = self.menuBar()
         file_menu = main_menu.addMenu("File")
+        self.settings_menu = main_menu.addMenu("Settings")
         help_menu = main_menu.addMenu("Help")
 
         # File > Switch Workspace ...
@@ -76,6 +77,15 @@ class UIWindow(QMainWindow):
         exit_button.setStatusTip('Exit')
         exit_button.triggered.connect(self.close)
         file_menu.addAction(exit_button)
+
+        # Settings > Core
+        main_settings_button = QAction('Core App', self)
+        main_settings_button.triggered.connect(
+            lambda:
+                core.QtExtensions.TomlConfigWindow.open_window.activateWindow() if core.QtExtensions.TomlConfigWindow.open_window
+                else core.QtExtensions.TomlConfigWindow.create_window("settings.toml", parent=self)
+        )
+        self.settings_menu.addAction(main_settings_button)
 
         # Help > Info
         info_button = QAction('About', self)
