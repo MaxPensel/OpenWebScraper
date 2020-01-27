@@ -30,10 +30,14 @@ You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
+
 import core
-from simple_settings import LazySettings
+import toml
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="template", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="template", file_path=APP_SETTINGS["general"]["master_log"])
 
-SETTINGS = LazySettings(r"modules\template\settings.toml")
+MOD_PATH = os.path.join(APP_SETTINGS["modloader"]["mod_dir"], "template")
+
+SETTINGS = toml.load(os.path.join(MOD_PATH, "settings.toml"))

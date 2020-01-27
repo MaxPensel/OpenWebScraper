@@ -1,28 +1,31 @@
 [general]
 title       = "Crawler"
 main_widget = "modules.crawler.view.CrawlerWidget"
-version     = "0.5.0 <beta>"
+version     = "0.6.0 <beta>"
 copyright   = "2019 Maximilian Pensel"
-scrapy_wrapper_exec = '..\..\OWS-scrapy-wrapper\dist\scrapy_wrapper\scrapy_wrapper.exe'
+scrapy_wrapper_exec = '/mnt/Data/Projects/Crawler/OWS-scrapy-wrapper/venv-ubuntu/bin/python /mnt/Data/Projects/Crawler/OWS-scrapy-wrapper/src/scrapy_wrapper.py'
 
 [ui]
 
-  [ui_parser]
+  [ui.parser]
   default = "Paragraph Parser"
 
-    [ui_parser_widgets]
+    [ui.parser.widgets]
     "Paragraph Parser" = "modules.crawler.ui.parsers.paragraph.ParagraphParserSettingsView"
+    "Raw Content Parser" = "modules.crawler.ui.parsers.raw.RawParserSettingsView"
 
-    [ui_parser_defaults]
+    [ui.parser.defaults]
     allowed_languages = ["de", "en"]
     xpaths = ["//p", "//td"]
+    content_types = ["text/html", "application/pdf"]
 
-  [ui_initializer]
+  [ui.initializer]
   default = "Local Workspace Initializer"
 
-    [ui_initializer_widgets]
+    [ui.initializer.widgets]
     "Local Workspace Initializer" = "modules.crawler.ui.initializers.local.LocalCrawlView"
     "Remote HTTP Initializer"     = "modules.crawler.ui.initializers.httpremote.HttpRemoteCrawlView"
+    "Specification Generator" = "modules.crawler.ui.initializers.nocrawl.NoCrawlView"
 
 [filemanager]
 # Directories within workspace
@@ -31,5 +34,6 @@ raw_data_dir = "raw"
 # File extensions
 url_file_extension = "urls"
 blacklist_file_extension = "blacklist"
+whitelist_file_extension = "whitelist"
 # File state flags
 incomplete_flag = "-INCOMPLETE"

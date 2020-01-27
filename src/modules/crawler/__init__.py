@@ -20,14 +20,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>."""
 
+import os
 import validators
 import core
-from simple_settings import LazySettings
+import toml
+
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
-SETTINGS = LazySettings("modules\\crawler\\settings.toml")
+MOD_PATH = os.path.join(APP_SETTINGS["modloader"]["mod_dir"], "crawler")
+
+SETTINGS = toml.load(os.path.join(MOD_PATH, "settings.toml"))
+
+
+def init(main_window):
+    main_window.register_settings("Crawler", os.path.join(MOD_PATH, "settings.toml"))
+    LOG.info("Finished initialization.")
 
 
 def detect_valid_urls(urls_in):

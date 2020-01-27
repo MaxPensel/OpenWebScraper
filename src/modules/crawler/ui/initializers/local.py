@@ -34,7 +34,7 @@ from modules.crawler.model import CrawlSpecification
 
 from crawlUI import APP_SETTINGS
 
-LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS.general["master_log"])
+LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
 
 class LocalCrawlView(QHBoxLayout):
@@ -165,6 +165,7 @@ class LocalCrawlController(core.ViewController):
 
     def start_crawl(self):
         LOG.info("Pre-flight checks for starting a new crawl ...")
+        self.master_cnt.update_model()
         if not self.master_cnt.crawl_specification.name:
             msg = SimpleErrorInfo("Error", "Your crawl must have a name.")
             msg.exec()
@@ -235,9 +236,8 @@ class LocalCrawlController(core.ViewController):
             # check if running specification exists, if so, return its path
             return filemanager.get_crawl_specification(spec.name)
         else:
-            # setup finalizers; for now this setup is fixed, may be UI configurable in the future
-            spec.update(pipelines={"pipelines.Paragraph2CsvPipeline": 300},
-                        finalizers={})
+            # setup empty finalizers list; local crawl does not rely on finalizers yet
+            spec.update(finalizers={})
             if spec.name in filemanager.get_crawlnames():
                 msg = SimpleYesNoMessage("Continue?",
                                          "There is already data for a crawl by the name '{0}'. Continue anyway?"
@@ -249,7 +249,7 @@ class LocalCrawlController(core.ViewController):
 
 
 def start_scrapy(settings_path):
-    scrapy_script = SETTINGS.general["scrapy_wrapper_exec"]
+    scrapy_script = SETTINGS["general"]["scrapy_wrapper_exec"]
     command = scrapy_script + " \"" + settings_path + "\""
     LOG.info("Running {0}".format(command))
     try:

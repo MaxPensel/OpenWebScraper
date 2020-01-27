@@ -29,7 +29,7 @@ class WorkspaceManager:
     class __WorkspaceManager:
 
         def __init__(self, path=""):
-            self._default_workspace = os.path.join(os.getcwd(), APP_SETTINGS.workspace["default"])
+            self._default_workspace = os.path.join(os.getcwd(), APP_SETTINGS["workspace"]["default"])
             self._workspace_path = path
 
             self.get_workspace()  # calling this on init ensures that the workspace always exists
@@ -56,10 +56,10 @@ class WorkspaceManager:
 
         def get_log_path(self):
             self._create_log_path()
-            return os.path.join(self.get_workspace(), APP_SETTINGS.workspace["log_path"])
+            return os.path.join(self.get_workspace(), APP_SETTINGS["workspace"]["log_path"])
 
         def _create_log_path(self):
-            os.makedirs(os.path.join(self.get_workspace(), APP_SETTINGS.workspace["log_path"]), exist_ok=True)
+            os.makedirs(os.path.join(self.get_workspace(), APP_SETTINGS["workspace"]["log_path"]), exist_ok=True)
 
     # End of inner __WorkspaceManager
 
