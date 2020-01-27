@@ -122,7 +122,8 @@ class ParagraphParserSettingsController(ViewController):
             KEY_XPATHS: self._view.xpath_area.toPlainText().splitlines()
         }
         spec.update(parser="parsers.ParagraphParser",
-                    parser_data=data)
+                    parser_data=data,
+                    pipelines={"pipelines.Paragraph2CsvPipeline": 300})
         pass
 
     def update_view(self):

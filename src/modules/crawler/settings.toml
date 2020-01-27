@@ -12,10 +12,12 @@ scrapy_wrapper_exec = '/mnt/Data/Projects/Crawler/OWS-scrapy-wrapper/venv-ubuntu
 
     [ui.parser.widgets]
     "Paragraph Parser" = "modules.crawler.ui.parsers.paragraph.ParagraphParserSettingsView"
+    "Raw Content Parser" = "modules.crawler.ui.parsers.raw.RawParserSettingsView"
 
     [ui.parser.defaults]
     allowed_languages = ["de", "en"]
     xpaths = ["//p", "//td"]
+    content_types = ["text/html", "application/pdf"]
 
   [ui.initializer]
   default = "Local Workspace Initializer"
