@@ -64,6 +64,7 @@ class CrawlerController(core.ViewController):
         Should not further adjust layouts or labels!
         """
 
+        # initialize url/blacklist/whitelist file selectors
         self._view.crawl_specification_view.url_select.setInsertPolicy(QComboBox.InsertAlphabetically)
         saturate_combobox(self._view.crawl_specification_view.url_select,
                           filemanager.get_url_filenames())
@@ -72,9 +73,15 @@ class CrawlerController(core.ViewController):
         saturate_combobox(self._view.crawl_specification_view.blacklist_select,
                           filemanager.get_blacklist_filenames())
 
+        self._view.crawl_specification_view.whitelist_select.setInsertPolicy(QComboBox.InsertAlphabetically)
+        saturate_combobox(self._view.crawl_specification_view.whitelist_select,
+                          filemanager.get_whitelist_filenames())
+
         self._view.crawl_specification_view.url_delete.setDisabled(True)
         self._view.crawl_specification_view.blacklist_delete.setDisabled(True)
+        self._view.crawl_specification_view.whitelist_delete.setDisabled(True)
 
+        # initialize highlighting for url area
         self._view.crawl_specification_view.url_highlighter.append_rule(
             (lambda l: l.startswith("#"), Qt.darkMagenta, None)
         )
@@ -82,6 +89,7 @@ class CrawlerController(core.ViewController):
             (lambda l: validators.url(l), Qt.darkGreen, Qt.red)
         )
 
+        # initialize comboboxes of parser and initializer sub-views
         saturate_combobox(self._view.parser_select, SETTINGS["ui"]["parser"]["widgets"].keys(), include_empty=False)
         self._view.parser_select.setCurrentIndex(
             self._view.parser_select.findText(SETTINGS["ui"]["parser"]["default"]))
@@ -105,6 +113,8 @@ class CrawlerController(core.ViewController):
         Should not initialise default state, use init_elements() for that.
         """
 
+        # setup url, blacklist and whitelist combobox and save button connectors
+        # url
         self._view.crawl_specification_view.url_select.currentIndexChanged.connect(
             CrawlerController.load_file_to_editor(self._view.crawl_specification_view.url_select,
                                                   filemanager.get_url_content,
@@ -117,7 +127,7 @@ class CrawlerController(core.ViewController):
                                       self._view.crawl_specification_view.url_area,
                                       filemanager.save_url_content,
                                       filemanager.get_url_filenames))
-
+        # blacklist
         self._view.crawl_specification_view.blacklist_select.currentIndexChanged.connect(
             CrawlerController.load_file_to_editor(self._view.crawl_specification_view.blacklist_select,
                                                   filemanager.get_blacklist_content,
@@ -130,6 +140,19 @@ class CrawlerController(core.ViewController):
                                       self._view.crawl_specification_view.blacklist_area,
                                       filemanager.save_blacklist_content,
                                       filemanager.get_blacklist_filenames))
+        # whitelist
+        self._view.crawl_specification_view.whitelist_select.currentIndexChanged.connect(
+            CrawlerController.load_file_to_editor(self._view.crawl_specification_view.whitelist_select,
+                                                  filemanager.get_whitelist_content,
+                                                  self._view.crawl_specification_view.whitelist_area,
+                                                  self._view.crawl_specification_view.whitelist_input,
+                                                  self))
+        self._view.crawl_specification_view.whitelist_save.clicked.connect(
+            build_save_file_connector(self._view.crawl_specification_view.whitelist_input,
+                                      self._view.crawl_specification_view.whitelist_select,
+                                      self._view.crawl_specification_view.whitelist_area,
+                                      filemanager.save_whitelist_content,
+                                      filemanager.get_whitelist_filenames))
 
         # sub view switching
         self._view.parser_select.currentIndexChanged.connect(
@@ -147,7 +170,9 @@ class CrawlerController(core.ViewController):
         # trigger model updates
         self._view.crawl_specification_view.url_area.textChanged.connect(self.update_model)
         self._view.crawl_specification_view.blacklist_area.textChanged.connect(self.update_model)
+        self._view.crawl_specification_view.whitelist_area.textChanged.connect(self.update_model)
 
+    @DeprecationWarning
     def setup_completion(self):
         url_model = QStringListModel()
         url_model.setStringList(filemanager.get_url_filenames())
@@ -243,6 +268,7 @@ class CrawlerController(core.ViewController):
     def update_view(self):
         self._view.crawl_specification_view.url_area.setPlainText("\n".join(self.crawl_specification.urls))
         self._view.crawl_specification_view.blacklist_area.setPlainText("\n".join(self.crawl_specification.blacklist))
+        self._view.crawl_specification_view.whitelist_area.setPlainText("\n".join(self.crawl_specification.whitelist))
         for cnt in self.sub_controllers:
             cnt.update_view()
 
@@ -250,7 +276,8 @@ class CrawlerController(core.ViewController):
         # eventually we could enforce urls and blacklist to be sets instead of lists here
         self.crawl_specification\
             .update(urls=self._view.crawl_specification_view.url_area.toPlainText().splitlines(),
-                    blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines())
+                    blacklist=self._view.crawl_specification_view.blacklist_area.toPlainText().splitlines(),
+                    whitelist=self._view.crawl_specification_view.whitelist_area.toPlainText().splitlines())
         for cnt in self.sub_controllers:
             cnt.update_model()
         LOG.debug("Crawl specification model updated.")  # this message is triggered very often

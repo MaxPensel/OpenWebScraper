@@ -101,6 +101,12 @@ def get_blacklist_filenames():
     return __get_filenames_of_type("." + SETTINGS["filemanager"]["blacklist_file_extension"], wsm.get_workspace())
 
 
+def get_whitelist_filenames():
+    wsm = WorkspaceManager()
+
+    return __get_filenames_of_type("." + SETTINGS["filemanager"]["whitelist_file_extension"], wsm.get_workspace())
+
+
 def get_crawlnames():
     return __get_filenames_of_type("", _get_data_path(), directories=True)
 
@@ -130,15 +136,19 @@ def get_incomplete_urls(crawl_name: str, urls: [str]) -> [str]:
 # get file contents
 
 def get_url_content(filename):
-    global url_file_extension
     filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["url_file_extension"])
 
     return __get_file_content(filepath)
 
 
 def get_blacklist_content(filename):
-    global blacklist_file_extension
     filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["blacklist_file_extension"])
+
+    return __get_file_content(filepath)
+
+
+def get_whitelist_content(filename):
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["whitelist_file_extension"])
 
     return __get_file_content(filepath)
 
@@ -168,10 +178,20 @@ def save_url_content(content, filename):
 
 def save_blacklist_content(content, filename):
     if not filename:
-        LOG.error("No filename given for saving url content.")
+        LOG.error("No filename given for saving blacklist content.")
         return
 
     filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["blacklist_file_extension"])
+
+    __save_file_content(content, filepath)
+
+
+def save_whitelist_content(content, filename):
+    if not filename:
+        LOG.error("No filename given for saving whitelist content.")
+        return
+
+    filepath = os.path.join(WorkspaceManager().get_workspace(), filename + "." + SETTINGS["filemanager"]["whitelist_file_extension"])
 
     __save_file_content(content, filepath)
 

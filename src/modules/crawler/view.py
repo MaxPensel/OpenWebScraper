@@ -92,6 +92,7 @@ class CrawlSpecificationView(QSplitter):
     def __init__(self):
         super().__init__()
         # ### Setting up a crawl
+        
         # setup url side
         self.url_select = QComboBox()
         self.url_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
@@ -122,7 +123,7 @@ class CrawlSpecificationView(QSplitter):
         url_input_group = QGroupBox("Urls")
         url_input_group.setLayout(url_container_layout)
 
-        # setup blacklist side
+        # setup blacklist area
         self.blacklist_select = QComboBox()
         self.blacklist_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.blacklist_input = QLineEdit()
@@ -151,7 +152,42 @@ class CrawlSpecificationView(QSplitter):
         blacklist_input_group = QGroupBox("Blacklist")
         blacklist_input_group.setLayout(blacklist_container_layout)
 
+        # setup whitelist area
+        self.whitelist_select = QComboBox()
+        self.whitelist_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.whitelist_input = QLineEdit()
+        self.whitelist_input.setMinimumWidth(150)
+
+        self.whitelist_save = QPushButton(icon=qtawesome.icon("fa5s.save", scale_factor=1.2))
+        self.whitelist_save.setProperty("class", "iconbutton")
+        self.whitelist_save.setCursor(QCursor(Qt.PointingHandCursor))
+
+        self.whitelist_delete = QPushButton(icon=qtawesome.icon("fa5s.trash-alt", scale_factor=1.2))
+        self.whitelist_delete.setProperty("class", "iconbutton")
+        self.whitelist_delete.setCursor(QCursor(Qt.PointingHandCursor))
+
+        self.whitelist_area = QPlainTextEdit()
+
+        whitelist_selection_layout = QHBoxLayout()
+        whitelist_selection_layout.addWidget(self.whitelist_select)
+        whitelist_selection_layout.addWidget(self.whitelist_input)
+        whitelist_selection_layout.addWidget(self.whitelist_save)
+        whitelist_selection_layout.addWidget(self.whitelist_delete)
+
+        whitelist_container_layout = QVBoxLayout()
+        whitelist_container_layout.addLayout(whitelist_selection_layout)
+        whitelist_container_layout.addWidget(self.whitelist_area)
+
+        whitelist_input_group = QGroupBox("Whitelist")
+        whitelist_input_group.setLayout(whitelist_container_layout)
+
+        # put together blacklist and whitelist
+        blacklist_whitelist_surround = QSplitter()
+        blacklist_whitelist_surround.setOrientation(Qt.Vertical)
+        blacklist_whitelist_surround.addWidget(blacklist_input_group)
+        blacklist_whitelist_surround.addWidget(whitelist_input_group)
+
         # put together
         self.setChildrenCollapsible(False)
         self.addWidget(url_input_group)
-        self.addWidget(blacklist_input_group)
+        self.addWidget(blacklist_whitelist_surround)

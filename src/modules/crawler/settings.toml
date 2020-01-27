@@ -34,5 +34,6 @@ raw_data_dir = "raw"
 # File extensions
 url_file_extension = "urls"
 blacklist_file_extension = "blacklist"
+whitelist_file_extension = "whitelist"
 # File state flags
 incomplete_flag = "-INCOMPLETE"
