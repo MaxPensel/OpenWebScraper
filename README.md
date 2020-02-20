@@ -97,7 +97,7 @@ For Windows users, there are two options for running OWS now (not counting direc
  
 ### Running OWS from Source
 
-Use your favourite command prompt and make sure the correct virtual environment is active (see Installation step 3
+Use your favourite command prompt and make sure the correct virtual environment is active (see Installation Step 6
  above).
 Navigate to `<installation-directory>/src` and run
 ```
@@ -106,7 +106,7 @@ python crawlUI.py
 
 ### Creating your own Binaries (Windows .exe)
 
-Continuing after Installation step 4, execute
+Continuing after Installation Step 7, execute
 ```
 pyinstaller OWS.spec
 ```
