@@ -169,7 +169,7 @@ machine, using the same workspace as the UI
 specification json to a remote message queue to be further processed by
 remote task listeners (This is not yet implemented fully)
 
-![scrapy wrapper component overview](src/doc/img/crawler_ui.svg "Crawler UI components")
+![scrapy wrapper component overview](src/doc/img/crawler_ui.png "Crawler UI components")
 
 For a small documentation on the .json specification, see 
 [OWS-scrapy-wrapper](https://github.com/MaxPensel/OWS-scrapy-wrapper#specificationjson).
