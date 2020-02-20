@@ -1,20 +1,22 @@
 # OpenWebScraper
 
-This is a simple modular graphical endpoint for the [Scrapy](https://scrapy.org/) python web-crawler library.
-It allows to issue crawls with a basic list of urls and regex-blacklist.
+This is a simple modular graphical user interface (GUI) for the [Scrapy](https://scrapy.org/) python web-scraping
+ library.
+It allows to issue crawls with a basic list of urls and regex-blacklist/-whitelist and the options to either crawl
+ for specified xpath-expressions or to crawl the raw html-content from the given urls.
 It will also support several post-processing and analytical features that are heavily based on the [pandas](http://pandas.pydata.org/) library.
-The graphical user interface (GUI) and its initial extent of features are
-specifically tailored to the german DFG research project 
-["Die Konstruktion organisationaler Identität und der Einfluss von Geschichte"](http://gepris.dfg.de/gepris/projekt/398074981?context=projekt&task=showDetail&id=398074981&)
-at the [TU Ilmenau](https://www.tu-ilmenau.de/).
 Hereinafter, OWS is short for OpenWebScraper.
 
 This project comprises solely the graphical endpoint to configure the behavior of the scrapy
 webscraping library. To execute crawls on your local machine, you also require
 the [OWS-scrapy-wrapper](https://github.com/MaxPensel/OWS-scrapy-wrapper).
+These components have been kept separately, because, in the future, OWS will also allow to issue crawls remotely vie
+http-request, thus not requiring to install OWS-scrapy-wrapper locally. 
 
 
-# Remarks
+
+
+## Remarks
 
 This software is still in early development. It is primarily developed with windows users in mind.
 Seeing as python, PyQt5, etc. are platform independend, it should run on unix-based systems as well, although this is not extensively tested yet.
@@ -27,31 +29,114 @@ As a developer, be aware that some of the design choices may not be fully incorp
 There is some code documentation, but as is to be expected of an early development stage, it is most likely insufficient to fully understand everything.
 Feel free to contact me with specific questions.
 
+# Installation from Source
+
+Check out the latest [release](https://github.com/MaxPensel/OpenWebScraper/releases)
+of OWS for Windows 10, 64-bit compiled binaries. They do not require 
+installation and are good-to-go.
+
+For python adepts, the `requirements.txt` is complete, either install those requirements in your global or virtual
+environment.
+For people not too familiar with python, follow the steps below. 
+
+Keep in mind, that the release, as well as the installation from source only contains the OpenWebScraper user
+interface.
+It does not contain the functionality to crawl on its own.
+Follow the instructions in [Interaction with OWS-scrapy-wrapper](#interaction-with-OWS-scrapy-wrapper) to connect
+OWS to the separate [scrapy crawler library wrapper](https://github.com/MaxPensel/OWS-scrapy-wrapper).
+
+## Preparation
+
+1.  Install Python 3.7.5 from the official website (select "put python on PATH" option during installation)
+2.  Download the sources either from the master branch or from the release of your choice.
+3.  Unizp sources in your installation location.
+
+## Installation
+The following steps require the use of a command prompt (windows: cmd, powershell; unix: bash, sh).
+Please consult the respective tutorial resources to acquaint yourself with the basics of command prompt interaction
+ (e.g. changing directories, creating directories, executing commands).
+ 
+4.  Navigate (cd) to the root of the directory containing your unzipped OWS sources.
+5.  Create a virtual environment:
+   
+    Windows:
+    ```
+    python -m venv venv
+    ``` 
+    
+    Linux / Mac:
+    ```
+    python3 -m venv venv
+    ```
+6.  Activate that environment:
+
+    Windows:
+    ```
+    .\venv\Scripts\activate.bat
+    ``` 
+    
+    Linux / Mac:
+    ```
+    . ./venv/bin/activate
+    ```
+    
+    To verify, it should say '(venv)' in from of your command line now.
+
+7.  Install requirements:
+
+    Any platform:
+    ```
+    pip install -r requirements.txt
+    ```
+
+## Running OpenWebScraper
+
+For now, Linux and Mac users need to run OWS from python source code each time.
+For Windows users, there are two options for running OWS now (not counting directly downloading the compiled binaries
+ and running those).
+ 
+### Running OWS from Source
+
+Use your favourite command prompt and make sure the correct virtual environment is active (see Installation step 3
+ above).
+Navigate to `<installation-directory>/src` and run
+```
+python crawlUI.py
+```
+
+### Creating your own Binaries (Windows .exe)
+
+Continuing after Installation step 4, execute
+```
+pyinstaller OWS.spec
+```
+in the root of your installation directory.
+This will create a `dist\OpenWebScraper\` directory in which you will find `OWS.exe`.
+You can execute this of course without the command prompt, make a shortcut, etc.
+
 # Interaction with OWS-scrapy-wrapper
 
 At this point, OWS allows only to issue local crawls. As a planned feature
 OWS will be able to report crawl specifications to arbitrary endpoints via http.
 
-To issue local crawls you need to install the standalone OWS-scrapy-wrapper
+To issue local crawls you need to install the standalone [OWS-scrapy-wrapper](https://github.com/MaxPensel/OWS-scrapy-wrapper)
 and confiure OWS so that it will be able to execute OWS-scrapy-wrapper.
-This configuration must be done in
-
-    modules/crawler/settings.toml
-by setting ```scrapy_wrapper_exec``` to a command that executes the OWS-scrapy-wrapper.
-The simplest option would be to provide the path to the binary file, e.g.
+This configuration can be adjusted from within the UI `Settings > Crawler`.
+You need to configure `scrapy_wrapper_exec` to a command that correctly executes the OWS-scrapy-wrapper.
+The simplest option (in windows) would be to provide the path to the binary file, e.g.
 ```C:\Path\To\OWS-scrapy-wrapper.exe```.
-Hoever, you could just as well use the sources, configure your python 
-environment appropriately and set
+Hoever, in case you need to use the sources, install OWS-scrapy-wrapper just like you installed OWS, and configure
+the setting `scrapy_wrapper_exec` to:
 
-    scrapy_wrapper_exec = 'python Path\To\scrapy_wrapper.py'
+Windows:
+```python
+scrapy_wrapper_exec = '<OWS-scrapy-wrapper-dir>\\venv\\Scripts\\python.exe <OWS-scrapy-wrapper-dir>\\src\\scrapy_wrapper.py'
+```
 
-# Installation from Source
-
-Check out the latest [release](https://github.com/MaxPensel/OpenWebScraper/releases)
-of OWS for windows 10, 64-bit compiled binaries. They do not require 
-installation and are good-to-go.
-
-In case you need to compile from sources, follow the directions in install_steps.txt
+Linux / Mac:
+```python
+scrapy_wrapper_exec = '<OWS-scrapy-wrapper-dir>/venv/bin/python <OWS-scrapy-wrapper-dir>/src/scrapy_wrapper.py'
+```
 
 # Documentation
 
@@ -93,3 +178,10 @@ For a small documentation on the .json specification, see
 
 This software is free of use, modification and redistribution under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
 For more information view the full text of the GNU GPLv3 license in COPYING or [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+
+# Credits
+
+The development of the OpenWebScraper, specifically its initial extent of features, has been supported
+by the german DFG research project _"Vielfalt der Diversity-Kommunikation"_ for the 
+[Department of Economic Sciences and Media](https://www.tu-ilmenau.de/en/department-em/)
+at the [TU Ilmenau](https://www.tu-ilmenau.de/).
