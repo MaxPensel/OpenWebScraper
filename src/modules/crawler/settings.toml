@@ -1,7 +1,7 @@
 [general]
 title       = "Crawler"
 main_widget = "modules.crawler.view.CrawlerWidget"
-version     = "0.6.0 <beta>"
+version     = "0.6.1 <beta>"
 copyright   = "2019 Maximilian Pensel"
 scrapy_wrapper_exec = 'SPECIFY EXECUTION COMMAND FOR OWS-SCRAPY-WRAPPER'
 

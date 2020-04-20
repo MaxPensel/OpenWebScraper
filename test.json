@@ -1,0 +1,15 @@
+{
+    "blacklist": [],
+    "finalizers": {},
+    "logs": "/mnt/Data/Projects/Crawler/SpiderGUI/src/default_workspace/logs/",
+    "name": "test",
+    "output": "/mnt/Data/Projects/Crawler/SpiderGUI/src/default_workspace/data/raw",
+    "parser": "parsers.RawParser",
+    "parser_data": {
+        "allowed_content_type": [
+            "text/html"
+        ]
+    },
+    "pipelines": {},
+    "urls": []
+}
