@@ -283,7 +283,11 @@ class TomlConfigWindow(QMainWindow):
 
             with open(self.toml_file, "w") as tf:
                 tf.write(content)
-            SimpleMessageBox("File Saved", "Successfully saved configuration.").exec()
+            SimpleMessageBox("File Saved",
+                             "Successfully saved configuration. "
+                             "Some changes only apply after restarting OpenWebScraper.").exec()
+
+            self.close()
         except toml.TomlDecodeError as exc:
             core.MASTER_LOGGER.exception(f"{type(exc).__name__}: {exc}")
             SimpleErrorInfo("Error", "Content not in correct toml formal.", details=str(exc)).exec()

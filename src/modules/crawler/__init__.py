@@ -31,7 +31,12 @@ LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["m
 
 MOD_PATH = os.path.join(APP_SETTINGS["modloader"]["mod_dir"], "crawler")
 
-SETTINGS = toml.load(os.path.join(MOD_PATH, "settings.toml"))
+
+def load_settings():
+    return toml.load(os.path.join(MOD_PATH, "settings.toml"))
+
+
+SETTINGS = load_settings()
 
 
 def init(main_window):
