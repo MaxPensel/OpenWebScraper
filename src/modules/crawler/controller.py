@@ -162,6 +162,9 @@ class CrawlerController(core.ViewController):
         )
 
         self._view.initializer_select.currentIndexChanged.connect(
+            lambda: self.set_initializer_info("")
+        )
+        self._view.initializer_select.currentIndexChanged.connect(
             lambda: self.switch_sub_view(SETTINGS["ui"]["initializer"]["widgets"],
                                          self._view.initializer_container.layout(),
                                          self._view.initializer_select)
@@ -227,6 +230,10 @@ class CrawlerController(core.ViewController):
             self.sub_controllers.append(self._view.crawl_parser_view.cnt)
 
             self.update_view()
+
+    def set_initializer_info(self, text, color="black"):
+        self._view.initializer_info.setText(text)
+        self._view.initializer_info.setStyleSheet('QLabel { color: %s }' % color)
 
     def switch_initializer_view(self):
         key = self._view.initializer_select.currentText()

@@ -67,9 +67,13 @@ class CrawlerWidget(QSplitter):
         self.initializer_select = QComboBox()
         self.initializer_select.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
+        self.initializer_info = QLabel()
+
         initializer_select_layout = QHBoxLayout()
         initializer_select_layout.addWidget(initializer_label)
         initializer_select_layout.addWidget(self.initializer_select)
+        initializer_select_layout.addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
+        initializer_select_layout.addWidget(self.initializer_info)
         initializer_select_layout.addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
         self.initializer_container = VerticalContainer()

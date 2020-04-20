@@ -20,9 +20,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
+import json
 import os
 import subprocess
 import sys
+import threading
 
 from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QGroupBox, QLineEdit, QHBoxLayout, QMessageBox
 
@@ -114,6 +116,14 @@ class LocalCrawlController(core.ViewController):
         else:
             self._view.crawl_name_input.textChanged.connect(self.update_model)
 
+        # test connection to scrapy wrapper and produce feedback
+        def set_info(info):
+            if "version" in info:
+                self.master_cnt.set_initializer_info(f"Connected to OWS-scrapy-wrapper version {info['version']}")
+            else:
+                self.master_cnt.set_initializer_info(info['message'], color="red")
+        thread = threading.Thread(target=check_scrapy_connection, args=[set_info])
+        thread.start()
 
     def update_model(self):
         if self.master_cnt:
@@ -269,3 +279,21 @@ def start_scrapy(settings_path):
                              close_fds=True)
     except Exception as exc:
         LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+
+
+def check_scrapy_connection(callback):
+    scrapy_script = SETTINGS["general"]["scrapy_wrapper_exec"]
+    command = scrapy_script + " INFO"
+    LOG.info("Running {0}".format(command))
+    try:
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=None, shell=False)
+
+        info_json, _ = proc.communicate()
+
+        info = json.loads(info_json.splitlines()[-1])
+        LOG.info("Connected to OWS-scrapy-wrapper version {0}".format(info["version"]))
+    except Exception as exc:
+        LOG.exception("{0}: {1}".format(type(exc).__name__, exc))
+        info = dict(message="Could not connect to OWS-scrapy-wrapper. Check your config.")
+
+    callback(info)
