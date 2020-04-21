@@ -224,8 +224,8 @@ class LocalCrawlController(core.ViewController):
 
                 if not msg.is_confirmed():
                     return
-                # else: update specification to use only valid urls and start the crawl
-                self.master_cnt.crawl_specification.update(urls=urls)
+            # else: update specification to use only valid urls and start the crawl
+            self.master_cnt.crawl_specification.update(urls=urls)
 
             settings_path = self.setup_crawl()
 
