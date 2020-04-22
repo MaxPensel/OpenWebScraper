@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QGroupBox, QLin
 
 import core
 from core.QtExtensions import saturate_combobox, SimpleErrorInfo, SimpleYesNoMessage, SimpleMessageBox
-from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls, SETTINGS
+from modules.crawler import filemanager, WindowsCreationFlags, detect_valid_urls, SETTINGS, compile_invalid_html
 from modules.crawler.controller import CrawlerController
 from modules.crawler.model import CrawlSpecification
 
@@ -182,6 +182,7 @@ class LocalCrawlController(core.ViewController):
             return
 
         # TODO Determine if a crawl has incomplete datafiles
+        """
         if False:
             msg = SimpleMessageBox("Warning",
                                    "There is still an unfinished crawl by the name '{0}'."
@@ -199,45 +200,42 @@ class LocalCrawlController(core.ViewController):
             else:
                 return
         else:
-            lines, invalid, urls = detect_valid_urls(self.master_cnt.crawl_specification.urls)
-            if invalid:
-                invalid_html = "The following is a list of lines that have not been recognized as a valid url " \
-                               "by the url validator. This could be because they syntactically do not form a valid " \
-                               "url-string or they are not responding to an http-request or the http-request is " \
-                               "being redirected to another url (other reasons might be possible).<br />" \
-                               "Consider opening the following urls in your browser to verify the problems yourself." \
-                               "<ul>"
-                for inv in invalid:
-                    invalid_html += "<li><a href='{0}'>{0}</a></li>".format(inv)
-                invalid_html += "</ul>"
-                if lines == len(invalid) or len(urls) == 0:
-                    msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b>", details=invalid_html)
-                    msg.exec()
-                    return
+        """
+        lines, invalid, urls = detect_valid_urls(self.master_cnt.crawl_specification.urls)
+        if invalid:
+            invalid_html = compile_invalid_html(invalid)
+            if lines == len(invalid) or len(urls) == 0:
+                msg = SimpleErrorInfo("Error", "<b>No valid urls given.</b>", details=invalid_html)
+                msg.exec()
+                return
 
-                msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>"
-                                                    .format(len(invalid), lines),
-                                                    "{0}"
-                                                    "<b>Do you wish to start the crawl with the remaining "
-                                                    "{1} valid urls?</b>"
-                                                    .format(invalid_html, lines-len(invalid)))
+            msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>"
+                                                .format(len(invalid), lines),
+                                                "{0}"
+                                                "<b>Do you wish to start the crawl with the remaining "
+                                                "{1} valid urls?</b>"
+                                                .format(invalid_html, lines-len(invalid)))
 
-                if not msg.is_confirmed():
-                    return
-            # else: update specification to use only valid urls and start the crawl
-            self.master_cnt.crawl_specification.update(urls=urls)
+            if not msg.is_confirmed():
+                return
+        # else: update specification to use only valid urls and start the crawl but reset afterwards for view
+        view_urls = self.master_cnt.crawl_specification.urls
+        self.master_cnt.crawl_specification.update(urls=urls)
 
-            settings_path = self.setup_crawl()
+        settings_path = self.setup_crawl()
 
-        if not settings_path:
-            msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
-            msg.exec()
-            return
         if settings_path is not None:
+            if not os.path.exists(settings_path):
+                msg = SimpleErrorInfo("Error", "Crawl setup encountered an error. Not starting crawl.")
+                msg.exec()
+                return
+
             LOG.info("Starting new crawl with settings in file {0}".format(settings_path))
             start_scrapy(settings_path)
         else:
-            LOG.error("Something went wrong it crawl specification setup. Not starting scrapy!")
+            LOG.error("Crawl aborted. Not starting scrapy!")
+
+        self.master_cnt.crawl_specification.update(urls=view_urls)
 
     def setup_crawl(self, continue_crawl=False):
         spec = self.master_cnt.crawl_specification
