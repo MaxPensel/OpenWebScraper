@@ -23,7 +23,7 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPushButton
 
 from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QComboBox, QSpacerItem, QSizePolicy, QFrame, QPushButton, \
-    QTableView
+    QTableView, QProgressBar
 import core
 from modules.analyzer.controller import AnalyzerController
 from modules.template import LOG
@@ -38,7 +38,8 @@ class AnalyzerView(VerticalContainer):
 
         self.crawl_selector = QComboBox()
         self.stat_generator = QPushButton("Analyze Crawl")
-        self.analyzing_feedback_label = QLabel()
+        self.analyzing_feedback_label = QLabel("Analysis:")
+        self.analysis_progress_bar = QProgressBar()
         self.stats_view = QTableView()
 
         title_label = QLabel("<h1>Paragraph Crawl Analyzer</h1>"
@@ -52,6 +53,7 @@ class AnalyzerView(VerticalContainer):
         selection_container.addWidget(self.crawl_selector)
         selection_container.addWidget(self.stat_generator)
         selection_container.addWidget(self.analyzing_feedback_label)
+        selection_container.addWidget(self.analysis_progress_bar)
         selection_container.layout().addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
         line = QFrame()

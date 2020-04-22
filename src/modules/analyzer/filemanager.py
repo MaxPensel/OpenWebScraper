@@ -23,6 +23,7 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from modules.crawler import filemanager as crawler_files
 from modules.analyzer import SETTINGS
+from modules.analyzer import LOG
 import pandas as pd
 
 __PANDAS_READ_PARS = dict(
@@ -45,7 +46,7 @@ def _get_stats_path(crawlname):
 def get_stats(crawlname):
     """ Return pandas.DataFrame if analysis exists, None otherwise. """
     stats_path = _get_stats_path(crawlname)
-    print("checking " + stats_path)
+    LOG.debug(f"Looking for stats at {stats_path}")
     if not os.path.exists(stats_path):
         return None
     return pd.read_csv(stats_path, **__PANDAS_READ_PARS)

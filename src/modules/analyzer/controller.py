@@ -52,6 +52,8 @@ class AnalyzerController(ViewController):
         saturate_combobox(self._view.crawl_selector, self.crawls, True)
 
         self._view.stat_generator.setEnabled(False)
+        self._view.analyzing_feedback_label.setVisible(False)
+        self._view.analysis_progress_bar.setVisible(False)
 
         self.update_view()
 
@@ -72,6 +74,7 @@ class AnalyzerController(ViewController):
     def select_crawl(self):
         """ Check if there are already statistics and offer to create statistics """
         crawlname = self._view.crawl_selector.currentText()
+
         if crawlname == "":
             self._view.stat_generator.setEnabled(False)
             self._view.stats_view.setModel(None)
@@ -81,6 +84,8 @@ class AnalyzerController(ViewController):
         df = analyzer_files.get_stats(crawlname)
         if isinstance(df, pd.DataFrame):
             self.show_data(df)
+        else:
+            self._view.stats_view.setModel(None)
 
     def show_data(self, df):
         try:
@@ -92,12 +97,22 @@ class AnalyzerController(ViewController):
     def start_analysis_mode(self):
         self._view.crawl_selector.setEnabled(False)
         self._view.stat_generator.setEnabled(False)
-        self._view.analyzing_feedback_label.setText("Analyzing ...")
+
+        self._view.analyzing_feedback_label.setVisible(True)
+
+        self._view.analysis_progress_bar.setValue(0)
+        self._view.analysis_progress_bar.setVisible(True)
+
+    def set_analysis_progress(self, progress):
+        LOG.debug(f"Setting progress to {progress}")
+        self._view.analysis_progress_bar.setValue(progress)
 
     def stop_analysis_mode(self):
         self._view.crawl_selector.setEnabled(True)
         self._view.stat_generator.setEnabled(True)
-        self._view.analyzing_feedback_label.setText("")
+
+        self._view.analyzing_feedback_label.setVisible(False)
+        self._view.analysis_progress_bar.setVisible(False)
 
     def generate_analysis(self):
         crawlname = self._view.crawl_selector.currentText()
@@ -117,10 +132,13 @@ class AnalyzerController(ViewController):
         data_files = crawler_files.get_datafiles(crawlname)
         LOG.info(f"Analyzing {len(data_files)} data-files for {crawlname}: {data_files}")
         stats = pd.DataFrame(columns=["URL", "Paragraphs", "Unique Paragraphs", "Words", "Words in Unique Paragraphs"])
+        tracker = AnalysisProgressTracker(len(data_files)*5, lambda tr: self.set_analysis_progress(tr.rate))
         for file in data_files:
             data = crawler_files.load_crawl_data(crawlname, file, convert=False)
+            tracker.step()  # done loading
             if "content" in data.columns:
                 data["words"] = data["content"].apply(lambda par: len(str(par).split()))
+                tracker.step()  # done calculating words
                 data_unique = data.drop_duplicates()
                 n_pars = len(data)
                 n_unique_pars = data["content"].nunique()
@@ -134,6 +152,8 @@ class AnalyzerController(ViewController):
                 stats = stats.append(new_row)
             else:
                 LOG.warning(f"{file}.csv is not in the expected format ('content' column missing).")
+
+            tracker.step()  # done processing data file
         stats = stats.set_index("URL")
 
         # Analyze log files
@@ -143,6 +163,7 @@ class AnalyzerController(ViewController):
             logstats = pd.DataFrame()
             for fname in log_files:
                 log_content = crawler_files.get_log_content(crawlname, fname)
+                tracker.step()  # done loading
                 counts = dict()
                 counts["URL"] = fname
                 counts["Warnings"] = 0
@@ -166,6 +187,8 @@ class AnalyzerController(ViewController):
 
                 logstats = pd.concat([logstats, pd.DataFrame([counts])], sort=False)
 
+                tracker.step()  # done processing log file
+
             logstats = logstats.set_index("URL").fillna(0)
             logstats.index = stats.index.str.replace(".log", "").str.replace("_", "/")
             logstats.index = stats.index.map(
@@ -181,3 +204,21 @@ class AnalyzerController(ViewController):
         LOG.info(f"Done analyzing {crawlname}, saved.")
         self.show_data(stats.reset_index())
         self.stop_analysis_mode()
+
+class AnalysisProgressTracker:
+
+    def __init__(self, total, callback=None):
+        self.total = total
+        self.done = 0
+        self.callback = callback
+
+        self.__update_rate()
+
+    def step(self):
+        self.done += 1
+        self.__update_rate()
+        if self.callback:
+            self.callback(self)
+
+    def __update_rate(self):
+        self.rate = (self.done/self.total) * 100
