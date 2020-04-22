@@ -134,17 +134,21 @@ class MainWidget(QTabWidget):
         
         parent.setStyleSheet(open("style.css").read())
         # parent.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
+        self.currentChanged.connect(lambda x: self.currentWidget().cnt.update_view() if self.currentWidget() else None)
     
     def register_modules(self, modules: {}):
         for module in modules:
             self.addTab(getattr(module, "MAIN_WIDGET")(), module.TITLE)
 
     def reload_modules(self, modules: {}):
+        cur_index = self.currentIndex()
         for i in range(self.count()):
             self.removeTab(0)
 
         for module in modules:
             self.addTab(module.MAIN_WIDGET(), module.TITLE)
+        self.setCurrentIndex(cur_index)
 
 
 class AboutWindow(QMainWindow):

@@ -25,7 +25,9 @@ import os
 from PyQt5.QtWidgets import QVBoxLayout, QLineEdit, QFileDialog, QPushButton
 
 import core
+from core.QtExtensions import SimpleYesNoMessage
 from crawlUI import APP_SETTINGS
+from modules.crawler import detect_valid_urls, compile_invalid_html
 
 LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["master_log"])
 
@@ -71,13 +73,29 @@ class NoCrawlController(core.ViewController):
 
     def save_specification(self):
         self.master_cnt.update_model()
+
+        lines, invalid, urls = detect_valid_urls(self.master_cnt.crawl_specification.urls)
+        if invalid:
+            invalid_html = compile_invalid_html(invalid)
+            msg = SimpleYesNoMessage("Warning", "<b>{0} out of {1} non-empty lines contain invalid urls.</b>"
+                                     .format(len(invalid), lines),
+                                     details="{0}"
+                                             "<b>Do you wish to save the crawl specification with the remaining "
+                                             "{1} valid urls?</b>".format(invalid_html, lines - len(invalid)))
+
+            if not msg.is_confirmed():
+                return
+
         if self.dialog.exec_():
             file_name = self.dialog.selectedFiles()[0]
             crawlname = os.path.splitext(os.path.basename(file_name))[0]
-            self.master_cnt.crawl_specification.update(name=crawlname)
+
+            # save specification using only valid urls
+            view_urls = self.master_cnt.crawl_specification.urls
+            self.master_cnt.crawl_specification.update(urls=urls, name=crawlname)
 
             with open(file_name, "w") as file:
                 file.write(self.master_cnt.crawl_specification.serialize())
                 LOG.info("Saved specification to {0}".format(file_name))
 
-
+            self.master_cnt.crawl_specification.update(urls=view_urls)

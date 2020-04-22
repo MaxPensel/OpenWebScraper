@@ -20,14 +20,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-
-import os
-
 import validators
-from PyQt5 import sip
 from PyQt5.Qt import Qt
 from PyQt5.QtCore import QStringListModel
-from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QWidget, QLayout
+from PyQt5.QtWidgets import QCompleter, QComboBox, QLineEdit, QPlainTextEdit, QLayout
 
 import core
 from core.QtExtensions import saturate_combobox, build_save_file_connector, delete_layout
@@ -210,51 +206,9 @@ class CrawlerController(core.ViewController):
             self.sub_controllers.append(view.cnt)
             self.update_view()
 
-    def switch_parser_view(self):
-        key = self._view.parser_select.currentText()
-        self.register_parser_view(SETTINGS["ui"]["parser"]["widgets"][key])
-
-    def register_parser_view(self, parser_view_path):
-        parser_view = core.get_class(parser_view_path)
-        if issubclass(parser_view, QWidget):
-            if self._view.crawl_parser_view is not None:
-                self._view.parser_settings_container.layout().removeWidget(self._view.crawl_parser_view)
-                sip.delete(self._view.crawl_parser_view)
-                self.sub_controllers.remove(self._view.crawl_parser_view.cnt)
-
-            self._view.crawl_parser_view = parser_view()
-            if issubclass(parser_view, QWidget):
-                self._view.parser_settings_container.layout().addWidget(self._view.crawl_parser_view)
-
-            self._view.crawl_parser_view.cnt.register_master_cnt(self)
-            self.sub_controllers.append(self._view.crawl_parser_view.cnt)
-
-            self.update_view()
-
     def set_initializer_info(self, text, color="black"):
         self._view.initializer_info.setText(text)
         self._view.initializer_info.setStyleSheet('QLabel { color: %s }' % color)
-
-    def switch_initializer_view(self):
-        key = self._view.initializer_select.currentText()
-        self.register_initializer_view(SETTINGS["ui"]["initializer"]["widgets"][key])
-
-    def register_initializer_view(self, initializer_view_path):
-        init_view = core.get_class(initializer_view_path)
-        if issubclass(init_view, QWidget):
-            if self._view.crawl_init_view is not None:
-                self._view.initializer_container.layout().removeWidget(self._view.crawl_init_view)
-                sip.delete(self._view.crawl_init_view)
-                self.sub_controllers.remove(self._view.crawl_init_view.cnt)
-
-            self._view.crawl_init_view = init_view()
-            if issubclass(init_view, QWidget):
-                self._view.initializer_container.layout().addWidget(self._view.crawl_init_view)
-
-            self._view.crawl_init_view.cnt.register_master_cnt(self)
-            self.sub_controllers.append(self._view.crawl_init_view.cnt)
-
-            self.update_view()
 
     @staticmethod
     def load_file_to_editor(combobox: QComboBox,

@@ -57,10 +57,10 @@ LOG = core.simple_logger(modname="crawler", file_path=APP_SETTINGS["general"]["m
 
 def _get_crawl_raw_path(crawlname):
     """ Returns '%workspace-dir%/data/%crawlname%/raw/' """
-    return os.path.join(_get_crawl_path(crawlname), SETTINGS["filemanager"]["raw_data_dir"])
+    return os.path.join(get_crawl_path(crawlname), SETTINGS["filemanager"]["raw_data_dir"])
 
 
-def _get_crawl_path(crawlname):
+def get_crawl_path(crawlname):
     """ Returns '%workspace-dir%/data/%crawlname%/' """
     return os.path.join(_get_data_path(), crawlname)
 
@@ -72,9 +72,13 @@ def _get_data_path():
         os.makedirs(data_path, exist_ok=True)
     return data_path
 
+def _get_log_path(crawl_name):
+    wsm = WorkspaceManager()
+    return os.path.join(wsm.get_log_path(), crawl_name)
+
 
 def get_crawl_specification(crawl_name):
-    path = os.path.join(_get_crawl_path(), crawl_name + ".json")
+    path = os.path.join(get_crawl_path(), crawl_name + ".json")
     if os.path.exists(path):
         return path
     else:
@@ -107,8 +111,22 @@ def get_whitelist_filenames():
     return __get_filenames_of_type("." + SETTINGS["filemanager"]["whitelist_file_extension"], wsm.get_workspace())
 
 
-def get_crawlnames():
+def get_crawlnames(filt=None):
+    if callable(filt):
+        return list(filter(filt, __get_filenames_of_type("", _get_data_path(), directories=True)))
+
     return __get_filenames_of_type("", _get_data_path(), directories=True)
+
+
+def get_logfiles(crawl_name, abspath=False):
+    fname_list = __get_filenames_of_type(".log", _get_log_path(crawl_name))
+    if abspath:
+        # return absolute paths with file ending
+        return list(map(lambda fname: os.path.join(os.path.join(wsm.get_log_path(), crawl_name), fname + ".log"),
+                        fname_list))
+    else:
+        # return a nice list of only the filenames (no file endings)
+        return fname_list
 
 
 def get_datafiles(crawl_name, abspath=False):
@@ -152,6 +170,15 @@ def get_whitelist_content(filename):
 
     return __get_file_content(filepath)
 
+
+def get_log_content(crawl_name, filename):
+    if os.path.exists(filename):
+        filepath = filename
+    else:
+        filepath = os.path.join(_get_log_path(crawl_name), filename + ".log")
+    with open(filepath, "r") as log_file:
+        content = log_file.read()
+    return content
 
 def load_crawl_data(crawl: str, url: str, convert: bool = True):
     if convert:
@@ -197,11 +224,11 @@ def save_whitelist_content(content, filename):
 
 
 def save_dataframe(crawl: str, name: str, df: pandas.DataFrame):
-    df.to_excel(os.path.join(_get_crawl_path(crawl), name + ".xls"))
+    df.to_excel(os.path.join(get_crawl_path(crawl), name + ".xls"))
 
 
 def extend_dataframe(crawl: str, name: str, df: pandas.DataFrame):
-    df_file = os.path.join(_get_crawl_path(crawl), name + ".xls")
+    df_file = os.path.join(get_crawl_path(crawl), name + ".xls")
     if os.path.exists(df_file):
         base_df = pandas.read_excel(df_file)
         columns = base_df.columns.union(df.columns)
@@ -218,7 +245,7 @@ def save_crawl_settings(name, settings: CrawlSpecification):
         return
 
     try:
-        filepath = os.path.join(_get_crawl_path(name), name + ".json")
+        filepath = os.path.join(get_crawl_path(name), name + ".json")
 
         __save_file_content(settings.serialize(), filepath)
     except Exception as exc:
@@ -282,7 +309,7 @@ def delete_and_clean(path, ignore_empty=False):
 
 
 def remove_crawl_content(crawl: str):
-    delete_and_clean(_get_crawl_path(crawl))
+    delete_and_clean(get_crawl_path(crawl))
 
 
 def make_raw_data_path(crawl: str):
@@ -309,7 +336,7 @@ def complete_csv(crawl: str, domain: str):
 # generic filesystem interactions
 ###
 
-def __get_filenames_of_type(ext, path, directories=False):
+def __get_filenames_of_type(ext, path, directories=False) -> list:
     filenames = []
 
     try:
@@ -351,3 +378,8 @@ def __save_file_content(content, path):
 
 def url2filename(url):
     return (urlparse(url).netloc + urlparse(url).path).replace("/", "_")
+
+
+def filename2url(url):
+    """ Reconvert a url to a filename, careful: if url contained _ before, it will not be correctly reconverted"""
+    return (urlparse(url).netloc + urlparse(url).path).replace("_", "/")

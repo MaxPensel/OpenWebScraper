@@ -59,5 +59,18 @@ def detect_valid_urls(urls_in):
     return lines, invalid, urls
 
 
+def compile_invalid_html(urls):
+    invalid_html = "The following is a list of lines that have not been recognized as a valid url " \
+                   "by the url validator. This could be because they syntactically do not form a valid " \
+                   "url-string or they are not responding to an http-request or the http-request is " \
+                   "being redirected to another url (other reasons might be possible).<br />" \
+                   "Consider opening the following urls in your browser to verify the problems yourself." \
+                   "<ul>"
+    for inv in urls:
+        invalid_html += "<li><a href='{0}'>{0}</a></li>".format(inv)
+    invalid_html += "</ul>"
+    return invalid_html
+
+
 class WindowsCreationFlags:
     DETACHED_PROCESS = 0x00000008
