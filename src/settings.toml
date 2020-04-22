@@ -1,6 +1,6 @@
 [general]
 modules    = ["crawler", "analyzer"]
-version    = "0.6.1 <beta>"
+version    = "0.7.0 <beta>"
 copyright  = "2019 Maximilian Pensel"
 master_log = "master.log"
 
