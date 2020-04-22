@@ -38,6 +38,7 @@ class AnalyzerView(VerticalContainer):
 
         self.crawl_selector = QComboBox()
         self.stat_generator = QPushButton("Analyze Crawl")
+        self.analyzing_feedback_label = QLabel()
         self.stats_view = QTableView()
 
         title_label = QLabel("<h1>Paragraph Crawl Analyzer</h1>"
@@ -50,6 +51,7 @@ class AnalyzerView(VerticalContainer):
         selection_container.addWidget(QLabel("Select crawl: "))
         selection_container.addWidget(self.crawl_selector)
         selection_container.addWidget(self.stat_generator)
+        selection_container.addWidget(self.analyzing_feedback_label)
         selection_container.layout().addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
         line = QFrame()

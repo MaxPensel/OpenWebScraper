@@ -20,6 +20,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
+import threading
+
 import pandas as pd
 from PyQt5.QtWidgets import QAbstractScrollArea
 from qtpy import QtCore
@@ -87,6 +89,16 @@ class AnalyzerController(ViewController):
         except Exception as err:
             LOG.exception(err)
 
+    def start_analysis_mode(self):
+        self._view.crawl_selector.setEnabled(False)
+        self._view.stat_generator.setEnabled(False)
+        self._view.analyzing_feedback_label.setText("Analyzing ...")
+
+    def stop_analysis_mode(self):
+        self._view.crawl_selector.setEnabled(True)
+        self._view.stat_generator.setEnabled(True)
+        self._view.analyzing_feedback_label.setText("")
+
     def generate_analysis(self):
         crawlname = self._view.crawl_selector.currentText()
         df_stats = analyzer_files.get_stats(crawlname)
@@ -97,13 +109,18 @@ class AnalyzerController(ViewController):
                 return
 
         # Generate the actual analysis:
+        self.start_analysis_mode()
+        thread = threading.Thread(target=self._generate_analysis_thread, args=[crawlname])
+        thread.start()
+
+    def _generate_analysis_thread(self, crawlname):
         data_files = crawler_files.get_datafiles(crawlname)
         LOG.info(f"Analyzing {len(data_files)} data-files for {crawlname}: {data_files}")
         stats = pd.DataFrame(columns=["URL", "Paragraphs", "Unique Paragraphs", "Words", "Words in Unique Paragraphs"])
         for file in data_files:
             data = crawler_files.load_crawl_data(crawlname, file, convert=False)
             if "content" in data.columns:
-                data["words"] = data["content"].apply(lambda par: len(par.split()))
+                data["words"] = data["content"].apply(lambda par: len(str(par).split()))
                 data_unique = data.drop_duplicates()
                 n_pars = len(data)
                 n_unique_pars = data["content"].nunique()
@@ -151,10 +168,11 @@ class AnalyzerController(ViewController):
 
             logstats = logstats.set_index("URL").fillna(0)
             logstats.index = stats.index.str.replace(".log", "").str.replace("_", "/")
-            logstats.index = stats.index.map(lambda idx: idx if idx in stats.index else idx + CRAWLER_SETTINGS["filemanager"]["incomplete_flag"])
-            #logstats.index = stats.index.str.replace(CRAWLER_SETTINGS["filemanager"]["incomplete_flag"], "")
-            #print(stats.info())
-            #print(logstats.info())
+            logstats.index = stats.index.map(
+                lambda idx: idx if idx in stats.index else idx + CRAWLER_SETTINGS["filemanager"]["incomplete_flag"])
+            # logstats.index = stats.index.str.replace(CRAWLER_SETTINGS["filemanager"]["incomplete_flag"], "")
+            # print(stats.info())
+            # print(logstats.info())
             stats = pd.concat([stats, logstats], axis=1).fillna(0).astype(int)
         except Exception as err:
             LOG.exception(err)
@@ -162,3 +180,4 @@ class AnalyzerController(ViewController):
         analyzer_files.save_stats(crawlname, stats)
         LOG.info(f"Done analyzing {crawlname}, saved.")
         self.show_data(stats.reset_index())
+        self.stop_analysis_mode()
