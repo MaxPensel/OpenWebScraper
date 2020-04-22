@@ -20,7 +20,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPushButton
+from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPushButton, HorizontalSeparator
 
 from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QComboBox, QSpacerItem, QSizePolicy, QFrame, QPushButton, \
     QTableView, QProgressBar
@@ -56,15 +56,10 @@ class AnalyzerView(VerticalContainer):
         selection_container.addWidget(self.analysis_progress_bar)
         selection_container.layout().addSpacerItem(QSpacerItem(100, 1, QSizePolicy.Expanding, QSizePolicy.Fixed))
 
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-
         self.addWidget(title_label)
-        self.addWidget(line)
+        self.addWidget(HorizontalSeparator())
         self.addWidget(selection_container)
-        self.addWidget(line)
+        self.addWidget(HorizontalSeparator())
         self.addWidget(self.stats_view)
-        #self.layout().addSpacerItem(QSpacerItem(1, 100, QSizePolicy.Fixed, QSizePolicy.Expanding))
 
         self.cnt = AnalyzerController(self)

@@ -23,8 +23,9 @@ along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 import threading
 
 import pandas as pd
+from PyQt5.QtCore import QObject, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtWidgets import QAbstractScrollArea
-from qtpy import QtCore
+from PyQt5 import QtCore
 
 from core import ViewController
 from core.QtExtensions import saturate_combobox, SimpleYesNoMessage
@@ -38,12 +39,21 @@ def get_paragraph_crawls():
     return crawler_files.get_crawlnames(filt=lambda name: len(crawler_files.get_datafiles(name)) > 0)
 
 
-class AnalyzerController(ViewController):
+class AnalyzerController(ViewController, QObject):
+
+    analysisStarted = QtCore.pyqtSignal()
+    analysisStopped = QtCore.pyqtSignal()
+    progressChanged = QtCore.pyqtSignal(int)
+
 
     def __init__(self, view):
+        super(QObject, self).__init__()
         super().__init__(view)
 
         self.crawls = get_paragraph_crawls()
+
+        self.threadpool = QThreadPool()
+        LOG.info(f"Initializing crawl analyzer thread-pool with {self.threadpool.maxThreadCount()} threads")
 
         self.init_elements()
         self.setup_behavior()
@@ -63,6 +73,10 @@ class AnalyzerController(ViewController):
         self._view.stat_generator.clicked.connect(self.generate_analysis)
 
         self._view.stats_view.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+
+        self.progressChanged.connect(self._view.analysis_progress_bar.setValue)
+        self.analysisStarted.connect(self.start_analysis_mode)
+        self.analysisStopped.connect(self.stop_analysis_mode)
 
     def update_view(self):
         if get_paragraph_crawls() != self.crawls:
@@ -103,10 +117,6 @@ class AnalyzerController(ViewController):
         self._view.analysis_progress_bar.setValue(0)
         self._view.analysis_progress_bar.setVisible(True)
 
-    def set_analysis_progress(self, progress):
-        LOG.debug(f"Setting progress to {progress}")
-        self._view.analysis_progress_bar.setValue(progress)
-
     def stop_analysis_mode(self):
         self._view.crawl_selector.setEnabled(True)
         self._view.stat_generator.setEnabled(True)
@@ -124,17 +134,26 @@ class AnalyzerController(ViewController):
                 return
 
         # Generate the actual analysis:
-        self.start_analysis_mode()
-        thread = threading.Thread(target=self._generate_analysis_thread, args=[crawlname])
-        thread.start()
+        self.analysisStarted.emit()
+        analysis_worker = AnalysisWorker(self, crawlname)
+        self.threadpool.start(analysis_worker)
 
-    def _generate_analysis_thread(self, crawlname):
-        data_files = crawler_files.get_datafiles(crawlname)
-        LOG.info(f"Analyzing {len(data_files)} data-files for {crawlname}: {data_files}")
+
+class AnalysisWorker(QRunnable):
+
+    def __init__(self, controller, crawlname):
+        super().__init__()
+        self._controller = controller
+        self.crawlname = crawlname
+
+    @pyqtSlot()
+    def run(self):
+        data_files = crawler_files.get_datafiles(self.crawlname)
+        LOG.info(f"Analyzing {len(data_files)} data-files for {self.crawlname}: {data_files}")
         stats = pd.DataFrame(columns=["URL", "Paragraphs", "Unique Paragraphs", "Words", "Words in Unique Paragraphs"])
-        tracker = AnalysisProgressTracker(len(data_files)*5, lambda tr: self.set_analysis_progress(tr.rate))
+        tracker = AnalysisProgressTracker(len(data_files) * 5, lambda tr: self._controller.progressChanged.emit(tr.rate))
         for file in data_files:
-            data = crawler_files.load_crawl_data(crawlname, file, convert=False)
+            data = crawler_files.load_crawl_data(self.crawlname, file, convert=False)
             tracker.step()  # done loading
             if "content" in data.columns:
                 data["words"] = data["content"].apply(lambda par: len(str(par).split()))
@@ -157,12 +176,12 @@ class AnalyzerController(ViewController):
         stats = stats.set_index("URL")
 
         # Analyze log files
-        log_files = list(filter(lambda lf: not lf.startswith("scrapy"), crawler_files.get_logfiles(crawlname)))
-        LOG.info(f"Analyzing {len(log_files)} log-files for {crawlname}: {log_files}")
+        log_files = list(filter(lambda lf: not lf.startswith("scrapy"), crawler_files.get_logfiles(self.crawlname)))
+        LOG.info(f"Analyzing {len(log_files)} log-files for {self.crawlname}: {log_files}")
         try:
             logstats = pd.DataFrame()
             for fname in log_files:
-                log_content = crawler_files.get_log_content(crawlname, fname)
+                log_content = crawler_files.get_log_content(self.crawlname, fname)
                 tracker.step()  # done loading
                 counts = dict()
                 counts["URL"] = fname
@@ -200,10 +219,11 @@ class AnalyzerController(ViewController):
         except Exception as err:
             LOG.exception(err)
 
-        analyzer_files.save_stats(crawlname, stats)
-        LOG.info(f"Done analyzing {crawlname}, saved.")
-        self.show_data(stats.reset_index())
-        self.stop_analysis_mode()
+        analyzer_files.save_stats(self.crawlname, stats)
+        LOG.info(f"Done analyzing {self.crawlname}, saved.")
+        self._controller.show_data(stats.reset_index())
+        self._controller.analysisStopped.emit()
+
 
 class AnalysisProgressTracker:
 
