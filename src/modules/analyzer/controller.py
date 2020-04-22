@@ -80,7 +80,7 @@ class AnalyzerController(ViewController, QObject):
 
     def update_view(self):
         if get_paragraph_crawls() != self.crawls:
-            self.crawls = crawler_files.get_crawlnames()
+            self.crawls = get_paragraph_crawls()
             cur_selec = self._view.crawl_selector.currentText()
             saturate_combobox(self._view.crawl_selector, self.crawls, True)
             self._view.crawl_selector.setCurrentIndex(self._view.crawl_selector.findText(cur_selec, QtCore.Qt.MatchFixedString))
