@@ -134,6 +134,8 @@ class MainWidget(QTabWidget):
         
         parent.setStyleSheet(open("style.css").read())
         # parent.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
+        self.currentChanged.connect(lambda x: self.currentWidget().cnt.update_view())
     
     def register_modules(self, modules: {}):
         for module in modules:

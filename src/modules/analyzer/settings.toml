@@ -1,0 +1,8 @@
+[general]
+title       = "Analyzer"
+main_widget = "modules.analyzer.view.AnalyzerView"
+version = "1.0.0"
+copyright   = "2019 Maximilian Pensel"
+
+[files]
+stats_filename = "stats.csv"
