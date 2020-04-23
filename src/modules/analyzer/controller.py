@@ -33,22 +33,17 @@ from modules.crawler import filemanager as crawler_files
 from modules.analyzer import filemanager as analyzer_files, LOG
 
 
-def get_paragraph_crawls():
-    return crawler_files.get_crawlnames(filt=lambda name: len(crawler_files.get_datafiles(name)) > 0)
-
-
 class AnalyzerController(ViewController, QObject):
 
     analysisStarted = QtCore.pyqtSignal()
     analysisStopped = QtCore.pyqtSignal()
     progressChanged = QtCore.pyqtSignal(int)
 
-
     def __init__(self, view):
         super(QObject, self).__init__()
         super().__init__(view)
 
-        self.crawls = get_paragraph_crawls()
+        self.crawls = crawler_files.get_paragraph_crawls()
 
         self.threadpool = QThreadPool()
         LOG.info(f"Initializing crawl analyzer thread-pool with {self.threadpool.maxThreadCount()} threads")
@@ -77,8 +72,8 @@ class AnalyzerController(ViewController, QObject):
         self.analysisStopped.connect(self.stop_analysis_mode)
 
     def update_view(self):
-        if get_paragraph_crawls() != self.crawls:
-            self.crawls = get_paragraph_crawls()
+        if crawler_files.get_paragraph_crawls() != self.crawls:
+            self.crawls = crawler_files.get_paragraph_crawls()
             cur_selec = self._view.crawl_selector.currentText()
             saturate_combobox(self._view.crawl_selector, self.crawls, True)
             self._view.crawl_selector.setCurrentIndex(self._view.crawl_selector.findText(cur_selec, QtCore.Qt.MatchFixedString))
@@ -147,9 +142,14 @@ class AnalysisWorker(QRunnable):
     @pyqtSlot()
     def run(self):
         data_files = crawler_files.get_datafiles(self.crawlname)
+        log_files = list(filter(lambda lf: not lf.startswith("scrapy"), crawler_files.get_logfiles(self.crawlname)))
+
         LOG.info(f"Analyzing {len(data_files)} data-files for {self.crawlname}: {data_files}")
         stats = pd.DataFrame(columns=["URL", "Paragraphs", "Unique Paragraphs", "Words", "Words in Unique Paragraphs"])
-        tracker = AnalysisProgressTracker(len(data_files) * 5, lambda tr: self._controller.progressChanged.emit(tr.rate))
+        tracker = AnalysisProgressTracker(
+            len(data_files) * 3 + len(log_files) * 2,
+            lambda tr: self._controller.progressChanged.emit(tr.rate)
+        )
         for file in data_files:
             data = crawler_files.load_crawl_data(self.crawlname, file, convert=False)
             tracker.step()  # done loading
@@ -174,7 +174,6 @@ class AnalysisWorker(QRunnable):
         stats = stats.set_index("URL")
 
         # Analyze log files
-        log_files = list(filter(lambda lf: not lf.startswith("scrapy"), crawler_files.get_logfiles(self.crawlname)))
         LOG.info(f"Analyzing {len(log_files)} log-files for {self.crawlname}: {log_files}")
         try:
             logstats = pd.DataFrame()
@@ -206,14 +205,15 @@ class AnalysisWorker(QRunnable):
 
                 tracker.step()  # done processing log file
 
-            logstats = logstats.set_index("URL").fillna(0)
-            logstats.index = stats.index.str.replace(".log", "").str.replace("_", "/")
-            logstats.index = stats.index.map(
-                lambda idx: idx if idx in stats.index else idx + CRAWLER_SETTINGS["filemanager"]["incomplete_flag"])
-            # logstats.index = stats.index.str.replace(CRAWLER_SETTINGS["filemanager"]["incomplete_flag"], "")
-            # print(stats.info())
-            # print(logstats.info())
-            stats = pd.concat([stats, logstats], axis=1).fillna(0).astype(int)
+            if len(logstats) > 0:
+                logstats = logstats.set_index("URL").fillna(0)
+                logstats.index = stats.index.str.replace(".log", "").str.replace("_", "/")
+                logstats.index = stats.index.map(
+                    lambda idx: idx if idx in stats.index else idx + CRAWLER_SETTINGS["filemanager"]["incomplete_flag"])
+                # logstats.index = stats.index.str.replace(CRAWLER_SETTINGS["filemanager"]["incomplete_flag"], "")
+                # print(stats.info())
+                # print(logstats.info())
+                stats = pd.concat([stats, logstats], axis=1).fillna(0).astype(int)
         except Exception as err:
             LOG.exception(err)
 

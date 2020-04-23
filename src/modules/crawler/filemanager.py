@@ -112,17 +112,27 @@ def get_whitelist_filenames():
 
 
 def get_crawlnames(filt=None):
-    if callable(filt):
-        return list(filter(filt, __get_filenames_of_type("", _get_data_path(), directories=True)))
+    data_path = _get_data_path()
+    data_dirs = __get_filenames_of_type("", data_path, directories=True)
 
-    return __get_filenames_of_type("", _get_data_path(), directories=True)
+    crawlnames = list(filter(
+        lambda dir: os.path.exists(os.path.join(data_path, dir, os.path.split(dir)[-1] + ".json")), data_dirs
+    ))
+    if callable(filt):
+        crawlnames = list(filter(filt, crawlnames))
+
+    return crawlnames
+
+
+def get_paragraph_crawls():
+    return get_crawlnames(filt=lambda name: len(get_datafiles(name)) > 0)
 
 
 def get_logfiles(crawl_name, abspath=False):
     fname_list = __get_filenames_of_type(".log", _get_log_path(crawl_name))
     if abspath:
         # return absolute paths with file ending
-        return list(map(lambda fname: os.path.join(os.path.join(wsm.get_log_path(), crawl_name), fname + ".log"),
+        return list(map(lambda fname: os.path.join(_get_log_path(crawl_name), fname + ".log"),
                         fname_list))
     else:
         # return a nice list of only the filenames (no file endings)
@@ -179,6 +189,7 @@ def get_log_content(crawl_name, filename):
     with open(filepath, "r") as log_file:
         content = log_file.read()
     return content
+
 
 def load_crawl_data(crawl: str, url: str, convert: bool = True):
     if convert:
@@ -338,6 +349,10 @@ def complete_csv(crawl: str, domain: str):
 
 def __get_filenames_of_type(ext, path, directories=False) -> list:
     filenames = []
+
+    if not os.path.exists(path):
+        LOG.warning(f"Looking for {ext} files in non-existent directory {path}")
+        return []
 
     try:
         for filename in os.listdir(path):
