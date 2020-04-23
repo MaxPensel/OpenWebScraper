@@ -20,13 +20,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-from core.QtExtensions import VerticalContainer, HorizontalContainer, FileOpenPushButton, HorizontalSeparator
+from core.QtExtensions import VerticalContainer, HorizontalContainer, HorizontalSeparator
 
-from PyQt5.QtWidgets import QLineEdit, QLabel, QPlainTextEdit, QComboBox, QSpacerItem, QSizePolicy, QFrame, QPushButton, \
+from PyQt5.QtWidgets import QLabel, QComboBox, QSpacerItem, QSizePolicy, QPushButton, \
     QTableView, QProgressBar
-import core
 from modules.analyzer.controller import AnalyzerController
-from modules.template import LOG
+from modules.analyzer import LOG
 
 
 class AnalyzerView(VerticalContainer):

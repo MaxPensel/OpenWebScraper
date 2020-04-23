@@ -20,8 +20,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with OpenWebScraper.  If not, see <https://www.gnu.org/licenses/>.
 """
-import threading
-
 import pandas as pd
 from PyQt5.QtCore import QObject, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtWidgets import QAbstractScrollArea
