@@ -179,9 +179,10 @@ For a small documentation on the .json specification, see
 This software is free of use, modification and redistribution under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
 For more information view the full text of the GNU GPLv3 license in COPYING or [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
-# Credits
+# Acknowledgements
 
-The development of the OpenWebScraper, specifically its initial extent of features, has been supported
-by the german DFG research project _"Vielfalt der Diversity-Kommunikation"_ for the 
-[Department of Economic Sciences and Media](https://www.tu-ilmenau.de/en/department-em/)
+The development of the OpenWebScraper, specifically its initial extent of features, has been financially supported
+by the faculty research initiative _"Vielfalt der Diversity-Kommunikation"_ for the 
+[Department of Economic Sciences and Media](https://www.tu-ilmenau.de/en/university/departments/department-of-economic-sciences-and-media)
 at the [TU Ilmenau](https://www.tu-ilmenau.de/).
+Additionally, many requirements and features (as well as user testing) have been designed in close collaboration with the DFG research project [_"The crafting of organizational identity and the role of history"_](https://gepris.dfg.de/gepris/projekt/398074981?language=en).
